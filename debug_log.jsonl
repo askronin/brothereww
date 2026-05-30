@@ -348,3 +348,10 @@
 {"event": "tpm_throttle_sleep", "seconds": 59.47, "tokens_in_window": 8106, "would_add": 4472}
 {"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:58:54.462+00:00", "duration_sec": 1.857, "est_tokens": 4472, "max_tokens_param": 1500, "prompt_tokens": 3076, "completion_tokens": 698, "total_tokens": 3774, "prompt_chars": 11414, "system_chars": 477}
 {"event": "row_warnings", "filename": "324603-4962713.pdf", "drug": "STELARA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm1_rule2", "MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "fda_api_error", "drug": "SILIQ", "error": "HTTP Error 404: Not Found"}
+{"event": "fda_baseline_missing", "drug": "SILIQ"}
+{"event": "fda_baseline_cache_written", "n_brands": 14}
+{"event": "fda_baseline_cache_loaded", "path": "fda_baselines_cache.json", "n_brands": 14}
+{"event": "fda_baseline_cache_loaded", "path": "fda_baselines_cache.json", "n_brands": 14}
+{"event": "fda_baseline_cache_loaded", "path": "fda_baselines_cache.json", "n_brands": 14}
+{"event": "fda_baseline_cache_loaded", "path": "fda_baselines_cache.json", "n_brands": 14}

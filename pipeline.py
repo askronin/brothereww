@@ -2960,6 +2960,644 @@ def validate_all(
 
 
 # ─────────────────────────────────────────────────────────────────
+# BLOCK 7 — ACCESS SCORE (Phase 9)
+# Pure-Python, deterministic, zero LLM calls.
+#
+# Implements partner spec §07_ACCESS_SCORE_COMPLETE + delta update:
+#   Layer A — Pre-checks (run BEFORE FDA comparison):
+#     1. apply_reauth_inference()        — Rules 1 & 2 normalise null + No
+#     2. PRODUCT_NOT_FOUND short-circuit — all 6 FDA fields null → bucket 0
+#     3. INSUFFICIENT_DATA short-circuit — only 0-1 FDA fields known → 25
+#
+#   Layer B — Six FDA-baseline comparisons (P1/P3/P4/P5/P6/P11):
+#     - compare_age handles "FDA labelled/approved age" → EQUIVALENT
+#     - compare_brand_steps / generic_steps / phototherapy / tb_test / specialist
+#     - Each returns (state, severity)
+#
+#   Layer C — Three access-modifier features (run AFTER FDA aggregation):
+#     - Feature A: initial_auth_duration_months
+#     - Feature B: reauth_required (post-inference)
+#     - Feature C: reauth_duration_months (only when B == Yes)
+#     - Consistency check: reauth_dur < initial_dur / 2 → +1 minor
+#
+#   Layer D — Bucket assignment (existing rules from §07 spec):
+#     - First-match-wins ladder over Severe/Major/Moderate/Minor/Improvement
+#     - Returns one of {0, 15, 25, 50, 75, 100}
+#
+# FDA baselines fetched from openFDA at startup, cached to
+# fda_baselines_cache.json. SILIQ-style API errors handled gracefully.
+# ─────────────────────────────────────────────────────────────────
+
+
+# ── FDA baseline cache + API ─────────────────────────────────────
+
+FDA_API_BASE = "https://api.fda.gov/drug/label.json"
+FDA_BASELINE_CACHE_PATH = Path(
+    os.environ.get("PIPELINE_FDA_CACHE_PATH", "fda_baselines_cache.json")
+)
+FDA_BASELINE: dict = {}  # populated by load_all_fda_baselines() at startup
+
+
+def fetch_fda_baseline(brand_name: str) -> Optional[dict]:
+    """Fetch FDA label for a brand from openFDA. Returns parsed baseline
+    dict or None on any failure (missing, network, malformed).
+
+    Handles three failure modes observed in raw API:
+      1. HTTP error / network timeout
+      2. Response body has top-level 'error' key (e.g. SILIQ: NOT_FOUND)
+      3. meta.results.total == 0 (no matches)
+    """
+    try:
+        import urllib.parse
+        import urllib.request
+
+        url = (
+            f"{FDA_API_BASE}?search="
+            f"openfda.brand_name:%22{urllib.parse.quote(brand_name)}%22&limit=1"
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "pso-pipeline/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+
+        # SILIQ-style: top-level "error" key, no meta
+        if "error" in data:
+            log_debug({
+                "event": "fda_api_no_result",
+                "drug": brand_name,
+                "error_code": data["error"].get("code"),
+                "error_message": data["error"].get("message"),
+            })
+            return None
+
+        if data.get("meta", {}).get("results", {}).get("total", 0) == 0:
+            log_debug({"event": "fda_api_no_result", "drug": brand_name})
+            return None
+
+        return parse_fda_label(data["results"][0], brand_name)
+
+    except Exception as e:
+        log_debug({"event": "fda_api_error", "drug": brand_name, "error": str(e)})
+        return None
+
+
+def parse_fda_label(label: dict, brand_name: str) -> dict:
+    """Parse raw FDA label into baseline dict.
+
+    Verified against TREMFYA (effective_time=20250929, min_age=6,
+    weight=40kg) and STELARA (effective_time=20260422, min_age=6, no
+    weight). Regexes broadened beyond spec to handle hyphen vs
+    space-separated severity ('moderate-to-severe' vs 'moderate to severe').
+    """
+    indications = (label.get("indications_and_usage") or [""])[0]
+    eff_time = label.get("effective_time", "")
+
+    # YYYYMMDD → YYYY-MM-DD
+    eff_date = None
+    if isinstance(eff_time, str) and len(eff_time) == 8 and eff_time.isdigit():
+        eff_date = f"{eff_time[:4]}-{eff_time[4:6]}-{eff_time[6:]}"
+
+    # Min age — "6 years of age and older" / "18 years of age or older"
+    age_match = re.search(
+        r"(\d+)\s+years?\s+of\s+age\s+(?:and|or)\s+older",
+        indications, re.IGNORECASE,
+    )
+    min_age = int(age_match.group(1)) if age_match else None
+
+    # Weight — "weigh at least 40 kg" / "weighing at least 40 kg"
+    weight_match = re.search(
+        r"weigh(?:ing)?\s+at\s+least\s+(\d+)\s*kg",
+        indications, re.IGNORECASE,
+    )
+    min_weight = int(weight_match.group(1)) if weight_match else None
+
+    # Severity — handle "moderate-to-severe" OR "moderate to severe"
+    # (TREMFYA uses hyphens, STELARA does not)
+    severity = None
+    if re.search(r"moderate[-\s]to[-\s]severe", indications, re.IGNORECASE):
+        severity = "moderate-to-severe"
+
+    openfda = label.get("openfda", {})
+    return {
+        "brand_name":                  brand_name,
+        "min_age":                     min_age,
+        "min_weight_kg":               min_weight,
+        "indication_severity":         severity,
+        "brand_steps":                 0,     # FDA never requires steps
+        "generic_steps":               0,
+        "phototherapy_required":       False,
+        "tb_test_required_as_pa_gate": False,  # FDA recommends evaluation, not PA gate
+        "tb_evaluation_recommended":   True,
+        "specialist_restriction":      None,
+        "label_effective_date":        eff_date,
+        "inn":         (openfda.get("generic_name")    or [None])[0],
+        "pharm_class": (openfda.get("pharm_class_epc") or [None])[0],
+    }
+
+
+def load_all_fda_baselines(brands: list) -> dict:
+    """Load FDA baselines for the given brand list. Disk-cached:
+    fda_baselines_cache.json on second run avoids any network calls.
+
+    Brands that fail to fetch are NOT cached as null — they are simply
+    absent from the returned dict. This lets future runs retry on
+    transient failures.
+    """
+    if FDA_BASELINE_CACHE_PATH.exists():
+        try:
+            with open(FDA_BASELINE_CACHE_PATH) as f:
+                cached = json.load(f)
+            log_debug({
+                "event": "fda_baseline_cache_loaded",
+                "path": str(FDA_BASELINE_CACHE_PATH),
+                "n_brands": len(cached),
+            })
+            return cached
+        except Exception as e:
+            log_debug({"event": "fda_baseline_cache_corrupt", "error": str(e)})
+
+    baselines: dict = {}
+    for brand in sorted({b.upper().strip() for b in brands if b}):
+        baseline = fetch_fda_baseline(brand)
+        if baseline:
+            baselines[brand] = baseline
+        else:
+            log_debug({"event": "fda_baseline_missing", "drug": brand})
+
+    try:
+        with open(FDA_BASELINE_CACHE_PATH, "w") as f:
+            json.dump(baselines, f, indent=2)
+        log_debug({
+            "event": "fda_baseline_cache_written",
+            "n_brands": len(baselines),
+        })
+    except Exception as e:
+        log_debug({"event": "fda_baseline_cache_write_failed", "error": str(e)})
+
+    return baselines
+
+
+# ── Null / value helpers ─────────────────────────────────────────
+
+_NULL_TOKENS = {"NA", "N/A", "NONE", "NULL", "", "UNSPECIFIED"}
+
+
+def _is_null_value(v) -> bool:
+    """Treat NA / NULL / empty / Unspecified / None as null for access score.
+    Note: 'Unspecified' counts as null for duration features (we don't know
+    the number), but treated as KNOWN for the PolicyCoverageCount check
+    when applied to text fields — that gating is done elsewhere."""
+    if v is None:
+        return True
+    s = str(v).strip().upper()
+    return s in _NULL_TOKENS
+
+
+def _to_int_or_none(v) -> Optional[int]:
+    """Parse integer from a value that may include 'months', '>=', '12.0', etc.
+    Returns None for null tokens or unparseable values."""
+    if _is_null_value(v):
+        return None
+    s = str(v).strip()
+    m = re.search(r"-?\d+", s)
+    if not m:
+        return None
+    try:
+        return int(m.group())
+    except ValueError:
+        return None
+
+
+def _parse_age_value(age_str) -> Optional[int]:
+    """Extract numeric age from '>=18' / '6 years or older' format.
+    Returns None for null tokens OR for 'FDA labelled/approved age' (the
+    caller handles that special case separately)."""
+    if _is_null_value(age_str):
+        return None
+    s = str(age_str).strip().upper()
+    if "FDA" in s and ("AGE" in s or "LABEL" in s or "APPROV" in s):
+        return None
+    m = re.search(r"\d+", s)
+    return int(m.group()) if m else None
+
+
+def _is_fda_labelled_age(age_str) -> bool:
+    """Per delta UPDATE 3: policy_age 'FDA labelled age' / 'FDA approved age'
+    means the policy defers to FDA → comparison must be EQUIVALENT."""
+    if _is_null_value(age_str):
+        return False
+    s = str(age_str).strip().upper()
+    return ("FDA" in s
+            and ("LABEL" in s or "APPROV" in s)
+            and "AGE" in s)
+
+
+# ── Layer A — Reauth inference + pre-check short-circuits ───────
+
+def apply_reauth_inference(params: dict) -> dict:
+    """Delta UPDATE: reauthorization inference rules. Applied BEFORE any
+    Feature B evaluation, mutates a COPY and returns it.
+
+      Rule 1: ReauthRequired NULL + ReauthDuration NOT NULL → Yes
+              (presence of a duration implies reauth exists)
+      Rule 2: ReauthRequired = No + ReauthDuration NOT NULL → Yes (override)
+              (duration is stronger evidence than the No flag)
+    """
+    out = dict(params)
+    req = out.get("reauth_required")
+    dur = out.get("reauth_duration_months")
+
+    req_null = _is_null_value(req)
+    dur_null = _is_null_value(dur)
+    req_no = (not req_null) and str(req).strip().lower() == "no"
+
+    if req_null and not dur_null:
+        out["reauth_required"] = "Yes"
+        out["_reauth_inferred_rule"] = "RULE_1_NULL_TO_YES"
+    elif req_no and not dur_null:
+        out["reauth_required"] = "Yes"
+        out["_reauth_inferred_rule"] = "RULE_2_NO_OVERRIDDEN_TO_YES"
+    return out
+
+
+# Fields participating in the policy-coverage-count check (the six FDA
+# comparison fields). Order matters for reasoning output only.
+FDA_COMPARISON_FIELDS = (
+    "age",
+    "steps_brands",
+    "steps_generic",
+    "step_phototherapy",
+    "tb_test_required",
+    "specialist_types",
+)
+
+
+def count_policy_coverage_fields(params: dict) -> int:
+    """Delta UPDATE 1 + 2: count how many of the 6 FDA-comparison fields
+    are non-null in the extracted params.
+
+    Note: 'No' counts as a real value (e.g. tb_test_required='No' is the
+    policy affirmatively saying no TB test is required → it IS known)."""
+    count = 0
+    for field in FDA_COMPARISON_FIELDS:
+        if not _is_null_value(params.get(field)):
+            count += 1
+    return count
+
+
+# ── Layer B — The six FDA-baseline comparisons ──────────────────
+
+def compare_age(fda_age, policy_age) -> tuple:
+    """P1 — age comparison with delta UPDATE 3.
+
+    If policy says 'FDA labelled age' → EQUIVALENT regardless of FDA age.
+    Else numeric delta = policy - FDA:
+      delta <= 0 → EQUIVALENT or LESS_RESTRICTIVE
+      0 < delta <= 4  → MORE_RESTRICTIVE / MINOR
+      5 <= delta <= 9 → MORE_RESTRICTIVE / MODERATE
+      delta >= 10     → MORE_RESTRICTIVE / MAJOR
+    """
+    # Delta UPDATE 3: FDA labelled age → EQUIVALENT
+    if _is_fda_labelled_age(policy_age):
+        return "EQUIVALENT", None
+
+    if fda_age is None or _is_null_value(policy_age):
+        return "UNKNOWN", None
+
+    fda_num = fda_age if isinstance(fda_age, int) else _parse_age_value(fda_age)
+    policy_num = _parse_age_value(policy_age)
+    if fda_num is None or policy_num is None:
+        return "UNKNOWN", None
+
+    delta = policy_num - fda_num
+    if delta > 0:
+        if delta <= 4:   sev = "MINOR"
+        elif delta <= 9: sev = "MODERATE"
+        else:            sev = "MAJOR"
+        return "MORE_RESTRICTIVE", sev
+    elif delta == 0:
+        return "EQUIVALENT", None
+    return "LESS_RESTRICTIVE", None
+
+
+def _compare_step_count(fda_steps, policy_steps, severity_ladder) -> tuple:
+    """Shared logic for brand + generic step comparisons.
+    severity_ladder maps delta -> severity, with the third entry used
+    for delta >= 3."""
+    fda_n = 0 if _is_null_value(fda_steps) else (_to_int_or_none(fda_steps) or 0)
+    policy_n = 0 if _is_null_value(policy_steps) else (_to_int_or_none(policy_steps) or 0)
+
+    delta = policy_n - fda_n
+    if delta > 0:
+        if delta == 1:   sev = severity_ladder[0]
+        elif delta == 2: sev = severity_ladder[1]
+        else:            sev = severity_ladder[2]
+        return "MORE_RESTRICTIVE", sev
+    elif delta == 0:
+        return "EQUIVALENT", None
+    return "LESS_RESTRICTIVE", None
+
+
+def compare_brand_steps(fda_steps, policy_steps) -> tuple:
+    """P3 — branded step count.
+      delta 1 → MODERATE, 2 → MAJOR, >=3 → SEVERE."""
+    return _compare_step_count(
+        fda_steps, policy_steps,
+        severity_ladder=("MODERATE", "MAJOR", "SEVERE"),
+    )
+
+
+def compare_generic_steps(fda_steps, policy_steps) -> tuple:
+    """P4 — generic step count.
+      delta 1 → MINOR, 2 → MODERATE, >=3 → MAJOR."""
+    return _compare_step_count(
+        fda_steps, policy_steps,
+        severity_ladder=("MINOR", "MODERATE", "MAJOR"),
+    )
+
+
+def compare_phototherapy(fda_val, policy_val) -> tuple:
+    """P5 — phototherapy step. Yes/No only. Null on either side → UNKNOWN."""
+    if _is_null_value(fda_val) or _is_null_value(policy_val):
+        # FDA baseline always has phototherapy_required=False for PsO → not null
+        # but defensively handle a None FDA.
+        if _is_null_value(policy_val):
+            return "UNKNOWN", None
+
+    fda_yes = (fda_val is True) or (str(fda_val).strip().lower() == "yes")
+    policy_yes = str(policy_val).strip().lower() == "yes"
+
+    if not fda_yes and policy_yes:
+        return "MORE_RESTRICTIVE", "MODERATE"
+    elif fda_yes and not policy_yes:
+        return "LESS_RESTRICTIVE", None
+    return "EQUIVALENT", None
+
+
+def compare_tb_test(fda_val, policy_val) -> tuple:
+    """P6 — TB test as PA gate.
+    FDA recommends evaluation but does NOT make it a PA gate, so
+    policy=Yes → MORE_RESTRICTIVE MINOR."""
+    if _is_null_value(policy_val):
+        return "UNKNOWN", None
+    fda_yes = (fda_val is True) or (str(fda_val).strip().lower() == "yes")
+    policy_yes = str(policy_val).strip().lower() == "yes"
+
+    if not fda_yes and policy_yes:
+        return "MORE_RESTRICTIVE", "MINOR"
+    elif fda_yes and not policy_yes:
+        return "LESS_RESTRICTIVE", None
+    return "EQUIVALENT", None
+
+
+def compare_specialist(fda_val, policy_val) -> tuple:
+    """P11 — specialist type restriction. Presence vs absence only;
+    dermatologist vs rheumatologist treated equally (both are restrictions)."""
+    if _is_null_value(policy_val):
+        # If policy explicitly says NA/None, that means no restriction.
+        policy_has = False
+    else:
+        policy_has = True
+
+    fda_has = (
+        fda_val is not None and not _is_null_value(fda_val)
+        and str(fda_val).strip().lower() not in ("false", "no")
+    )
+
+    if not fda_has and policy_has:
+        return "MORE_RESTRICTIVE", "MINOR"
+    elif fda_has and not policy_has:
+        return "LESS_RESTRICTIVE", None
+    return "EQUIVALENT", None
+
+
+def aggregate_severity_counts(comparisons: dict) -> dict:
+    """Tally MORE_RESTRICTIVE severities + improvement + unknown counts."""
+    counts = {
+        "severe": 0, "major": 0, "moderate": 0,
+        "minor": 0, "improvement": 0, "unknown": 0,
+    }
+    for _, (state, severity) in comparisons.items():
+        if state == "MORE_RESTRICTIVE" and severity:
+            counts[severity.lower()] = counts.get(severity.lower(), 0) + 1
+        elif state == "LESS_RESTRICTIVE":
+            counts["improvement"] += 1
+        elif state == "UNKNOWN":
+            counts["unknown"] += 1
+    return counts
+
+
+# ── Layer C — Access modifier features (A, B, C) + consistency ──
+
+def _classify_duration_months(months: Optional[int]) -> str:
+    """Shared bucket for Feature A and Feature C:
+      >= 12 → IMPROVEMENT
+      6-11  → NEUTRAL
+      < 6   → MINOR_RESTRICTION
+      None  → UNKNOWN
+    """
+    if months is None:
+        return "UNKNOWN"
+    if months >= 12:
+        return "IMPROVEMENT"
+    if months >= 6:
+        return "NEUTRAL"
+    return "MINOR_RESTRICTION"
+
+
+def evaluate_access_modifiers(params: dict) -> dict:
+    """Delta NEW: features A/B/C + consistency check.
+
+    Assumes apply_reauth_inference() has already been called on params.
+    Returns dict with per-feature outcome + roll-up counts to add to the
+    main severity counters.
+    """
+    initial_dur = _to_int_or_none(params.get("initial_auth_duration_months"))
+    reauth_dur = _to_int_or_none(params.get("reauth_duration_months"))
+    reauth_req_raw = params.get("reauth_required")
+    reauth_req_null = _is_null_value(reauth_req_raw)
+    reauth_req_yes = (not reauth_req_null) and str(reauth_req_raw).strip().lower() == "yes"
+    reauth_req_no = (not reauth_req_null) and str(reauth_req_raw).strip().lower() == "no"
+
+    # Feature A — Initial Authorization Duration
+    feature_a = _classify_duration_months(initial_dur)
+
+    # Feature B — Reauthorization Required
+    if reauth_req_no:
+        feature_b = "IMPROVEMENT"
+    elif reauth_req_yes:
+        feature_b = "EVALUATE_C"
+    else:
+        feature_b = "UNKNOWN"
+
+    # Feature C — Reauthorization Duration (only when B == EVALUATE_C)
+    if feature_b == "EVALUATE_C":
+        feature_c = _classify_duration_months(reauth_dur)
+    else:
+        feature_c = "NOT_APPLICABLE"
+
+    # Consistency check — applies only when BOTH durations are real numbers.
+    # Reauth < Initial/2 → +1 minor restriction.
+    consistency_penalty = 0
+    if initial_dur is not None and reauth_dur is not None:
+        if reauth_dur < initial_dur / 2:
+            consistency_penalty = 1
+
+    # Roll up to severity counters
+    improvements = 0
+    minor_restrictions = 0
+    for outcome in (feature_a, feature_b, feature_c):
+        if outcome == "IMPROVEMENT":
+            improvements += 1
+        elif outcome == "MINOR_RESTRICTION":
+            minor_restrictions += 1
+    minor_restrictions += consistency_penalty
+
+    return {
+        "feature_a": feature_a,
+        "feature_b": feature_b,
+        "feature_c": feature_c,
+        "consistency_penalty": consistency_penalty,
+        "improvements": improvements,
+        "minor_restrictions": minor_restrictions,
+    }
+
+
+# ── Layer D — Bucket assignment ─────────────────────────────────
+
+def assign_bucket(counts: dict) -> int:
+    """First-match-wins ladder over the existing §07 spec."""
+    severe      = counts.get("severe", 0)
+    major       = counts.get("major", 0)
+    moderate    = counts.get("moderate", 0)
+    minor       = counts.get("minor", 0)
+    improvement = counts.get("improvement", 0)
+
+    # Bucket 0 — Near-impossible
+    if (severe >= 1 and major >= 1) or major >= 3 or severe >= 2:
+        return 0
+    # Bucket 15 — Very restrictive
+    if major >= 2 or severe >= 1:
+        return 15
+    # Bucket 25 — Restrictive
+    if major == 1 or moderate >= 2 or minor >= 3:
+        return 25
+    # Bucket 100 — Best access
+    if (improvement >= 2 and severe == 0 and major == 0
+            and moderate == 0 and minor == 0):
+        return 100
+    # Bucket 75 — Better than FDA
+    if improvement >= 1 and severe == 0 and major == 0:
+        return 75
+    # Bucket 50 — FDA parity
+    if severe == 0 and major == 0 and moderate == 0 and minor <= 1:
+        return 50
+    # Fallback — should not reach if rules are exhaustive
+    return 25
+
+
+# ── Master orchestrator ──────────────────────────────────────────
+
+def compute_access_score(params: dict, drug: str) -> dict:
+    """Master access-score function. Pure Python, zero LLM calls.
+
+    Pipeline:
+      0. Pull FDA baseline (cached). Missing → bucket 25.
+      1. apply_reauth_inference()      — normalise reauth_required
+      2. PolicyCoverageCount short-circuit (delta UPDATE 1+2)
+      3. Six FDA comparisons → aggregate severity counts
+      4. evaluate_access_modifiers()   — Features A/B/C + consistency
+         → add to improvement / minor counters
+      5. assign_bucket()
+      6. Build reasoning trace
+    """
+    fda = FDA_BASELINE.get(drug.upper().strip()) if drug else None
+    if not fda:
+        return {
+            "bucket": 25,
+            "score": 25,
+            "reason": "FDA_BASELINE_MISSING",
+            "reasoning": [f"FDA baseline not found for {drug} — default Bucket 25"],
+        }
+
+    # Layer A — inference + pre-check shorts
+    params = apply_reauth_inference(params)
+
+    coverage = count_policy_coverage_fields(params)
+    if coverage == 0:
+        return {
+            "bucket": 0,
+            "score": 0,
+            "reason": "PRODUCT_NOT_FOUND",
+            "coverage_count": 0,
+            "reasoning": ["All 6 FDA-comparison fields null → PRODUCT_NOT_FOUND"],
+        }
+    if coverage <= 1:
+        return {
+            "bucket": 25,
+            "score": 25,
+            "reason": "INSUFFICIENT_DATA",
+            "coverage_count": coverage,
+            "reasoning": [f"Only {coverage}/6 FDA-comparison fields known → INSUFFICIENT_DATA"],
+        }
+
+    # Layer B — six FDA comparisons
+    comparisons = {
+        "age":           compare_age(fda.get("min_age"),                params.get("age")),
+        "brand_steps":   compare_brand_steps(fda.get("brand_steps"),    params.get("steps_brands")),
+        "generic_steps": compare_generic_steps(fda.get("generic_steps"), params.get("steps_generic")),
+        "phototherapy":  compare_phototherapy(fda.get("phototherapy_required"), params.get("step_phototherapy")),
+        "tb_test":       compare_tb_test(fda.get("tb_test_required_as_pa_gate"), params.get("tb_test_required")),
+        "specialist":    compare_specialist(fda.get("specialist_restriction"),   params.get("specialist_types")),
+    }
+    counts = aggregate_severity_counts(comparisons)
+
+    # Layer C — access modifier features
+    modifiers = evaluate_access_modifiers(params)
+    counts["improvement"] += modifiers["improvements"]
+    counts["minor"]       += modifiers["minor_restrictions"]
+
+    # Layer D — bucket assignment
+    bucket = assign_bucket(counts)
+
+    return {
+        "bucket": bucket,
+        "score": bucket,  # Score == bucket until Layer 2 within-bucket scoring lands
+        "reason": "OK",
+        "coverage_count": coverage,
+        "restriction_summary": counts,
+        "comparisons": {
+            k: {"state": v[0], "severity": v[1]}
+            for k, v in comparisons.items()
+        },
+        "modifiers": modifiers,
+        "reauth_inference": params.get("_reauth_inferred_rule"),
+        "reasoning": _build_access_score_reasoning(comparisons, modifiers, counts, bucket),
+    }
+
+
+def _build_access_score_reasoning(comparisons, modifiers, counts, bucket) -> list:
+    """Human-readable trace for debug log + manual review."""
+    lines: list = []
+    for param, (state, severity) in comparisons.items():
+        if state == "MORE_RESTRICTIVE":
+            lines.append(f"{param}: MORE_RESTRICTIVE ({severity})")
+        elif state == "LESS_RESTRICTIVE":
+            lines.append(f"{param}: LESS_RESTRICTIVE (improvement)")
+        elif state == "UNKNOWN":
+            lines.append(f"{param}: UNKNOWN (ignored)")
+    lines.append(
+        f"modifiers: A={modifiers['feature_a']}, B={modifiers['feature_b']}, "
+        f"C={modifiers['feature_c']}, consistency_penalty={modifiers['consistency_penalty']}"
+    )
+    lines.append(
+        f"Bucket: {bucket} | Severe={counts['severe']}, Major={counts['major']}, "
+        f"Moderate={counts['moderate']}, Minor={counts['minor']}, "
+        f"Improvements={counts['improvement']}"
+    )
+    return lines
+
+
+# ─────────────────────────────────────────────────────────────────
 # BLOCK 8 — ORCHESTRATOR (Phase 8)
 # Pre-flight, three-tier cache (pdf / outline / section), per-row
 # pipeline with rerun loop + rule-based step fallback, atomic checkpoint
@@ -3198,8 +3836,30 @@ def process_single_row(
                 f"{critical_failures}"
             )
 
-        # Phase 2 placeholder
-        params["access_score"] = ""
+        # Block 7 — Access Score (pure-Python, no LLM)
+        try:
+            access_result = compute_access_score(params, drug)
+            params["access_score"] = access_result["bucket"]
+            log_debug({
+                "event": "access_score_computed",
+                "filename": filename,
+                "drug": drug,
+                "bucket": access_result["bucket"],
+                "reason": access_result.get("reason"),
+                "coverage_count": access_result.get("coverage_count"),
+                "modifiers": access_result.get("modifiers"),
+                "restriction_summary": access_result.get("restriction_summary"),
+                "reasoning": access_result.get("reasoning"),
+            })
+        except Exception as e:
+            log_debug({
+                "event": "access_score_failed",
+                "filename": filename,
+                "drug": drug,
+                "error": str(e),
+            })
+            params["access_score"] = ""
+            params.setdefault("_warnings", []).append(f"ACCESS_SCORE_FAILED: {e}")
 
         if params.get("_warnings"):
             log_debug({
@@ -3853,6 +4513,20 @@ def main() -> None:
     print("Loading submissions...")
     submissions_df = load_submissions(XLSX_PATH)
     print(f"  {len(submissions_df)} rows to process")
+
+    # Block 7 — Load FDA baselines for every unique brand in the batch.
+    # Disk-cached to fda_baselines_cache.json — second run skips all
+    # openFDA API calls. SILIQ-style "not found" brands are simply absent
+    # from the dict; compute_access_score() defaults them to Bucket 25
+    # with FDA_BASELINE_MISSING reason.
+    global FDA_BASELINE
+    print("Loading FDA baselines from openFDA (cached after first run)...")
+    unique_brands = sorted({str(b).strip() for b in submissions_df["Brand"] if b})
+    FDA_BASELINE = load_all_fda_baselines(unique_brands)
+    print(f"  FDA baselines loaded: {len(FDA_BASELINE)}/{len(unique_brands)} brands")
+    missing = sorted(set(b.upper() for b in unique_brands) - set(FDA_BASELINE.keys()))
+    if missing:
+        print(f"  WARN: no FDA baseline for {missing} — those rows default to Bucket 25")
 
     # Optional Reference-tab inspection (no halt)
     try:
