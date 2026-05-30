@@ -1,0 +1,389 @@
+# ACCESS SCORE ENGINE - DELTA UPDATE
+
+## UPDATE 1: PRODUCT NOT FOUND OVERRIDE
+
+### Rule
+
+Before any FDA comparison or bucket calculation:
+
+Compute:
+
+```text
+PolicyCoverageCount
+```
+
+using only FDA-comparison fields:
+
+* Age
+* BrandSteps
+* GenericSteps
+* Phototherapy
+* TBTest
+* SpecialistType
+
+### Condition
+
+If:
+
+```text
+PolicyCoverageCount = 0
+```
+
+Meaning all six policy fields are null.
+
+### Action
+
+Immediately return:
+
+```json
+{
+  "bucket": 0,
+  "reason": "PRODUCT_NOT_FOUND"
+}
+```
+
+Stop further execution.
+
+---
+
+## UPDATE 2: INSUFFICIENT DATA OVERRIDE
+
+### Condition
+
+If:
+
+```text
+KnownFieldCount <= 1
+```
+
+Equivalent to:
+
+```text
+NullCount >= 5
+```
+
+for the six FDA-comparison fields.
+
+### Action
+
+Immediately return:
+
+```json
+{
+  "bucket": 25,
+  "reason": "INSUFFICIENT_DATA"
+}
+```
+
+Stop further execution.
+
+---
+
+## UPDATE 3: FDA LABELLED AGE HANDLING
+
+### Rule
+
+If Policy Age contains:
+
+```text
+FDA labelled age
+```
+
+or equivalent normalized value.
+
+### Action
+
+Age comparison result must be:
+
+```text
+EQUIVALENT
+```
+
+regardless of FDA age value.
+
+### Example
+
+FDA:
+
+```text
+>=6
+```
+
+Policy:
+
+```text
+FDA labelled age
+```
+
+Result:
+
+```text
+EQUIVALENT
+```
+
+---
+
+# NEW ACCESS MODIFIER FEATURES
+
+The following fields do NOT participate in FDA comparison.
+
+They are evaluated independently after FDA severity calculation.
+
+---
+
+## FEATURE A
+
+### Initial Authorization Duration (Months)
+
+Input:
+
+```text
+InitialAuthorizationDurationMonths
+```
+
+### Rules
+
+| Duration | Effect               |
+| -------- | -------------------- |
+| >= 12    | Improvement +1       |
+| 6-11     | Neutral              |
+| < 6      | Minor Restriction +1 |
+
+### Null Handling
+
+```text
+NULL
+```
+
+→ UNKNOWN
+
+→ No effect
+
+---
+
+## FEATURE B
+
+### Reauthorization Required
+
+Input:
+
+```text
+ReauthorizationRequired
+```
+
+Allowed values:
+
+```text
+Yes
+No
+NULL
+```
+
+### Rules
+
+If:
+
+```text
+No
+```
+
+→ Improvement +1
+
+If:
+
+```text
+Yes
+```
+
+→ Evaluate Reauthorization Duration
+
+If:
+
+```text
+NULL
+```
+
+→ Apply inference rules first
+
+---
+
+## FEATURE C
+
+### Reauthorization Duration (Months)
+
+Input:
+
+```text
+ReauthorizationDurationMonths
+```
+
+Only evaluate when:
+
+```text
+ReauthorizationRequired = Yes
+```
+
+### Rules
+
+| Duration | Effect               |
+| -------- | -------------------- |
+| >= 12    | Improvement +1       |
+| 6-11     | Neutral              |
+| < 6      | Minor Restriction +1 |
+
+### Null Handling
+
+```text
+NULL
+```
+
+→ UNKNOWN
+
+→ No effect
+
+---
+
+# REAUTHORIZATION INFERENCE RULES
+
+Apply before evaluation.
+
+---
+
+## Rule 1
+
+If:
+
+```text
+ReauthorizationRequired IS NULL
+
+AND
+
+ReauthorizationDuration IS NOT NULL
+```
+
+Then:
+
+```text
+ReauthorizationRequired = Yes
+```
+
+Reason:
+
+Presence of reauthorization duration implies reauthorization exists.
+
+---
+
+## Rule 2
+
+If:
+
+```text
+ReauthorizationRequired = No
+
+AND
+
+ReauthorizationDuration IS NOT NULL
+```
+
+Then override:
+
+```text
+ReauthorizationRequired = Yes
+```
+
+Reason:
+
+Duration information is stronger evidence than the No flag.
+
+---
+
+# CONSISTENCY CHECK
+
+Apply only when:
+
+```text
+InitialAuthorizationDuration IS NOT NULL
+
+AND
+
+ReauthorizationDuration IS NOT NULL
+```
+
+### Rule
+
+If:
+
+```text
+ReauthorizationDuration
+<
+InitialAuthorizationDuration / 2
+```
+
+Then:
+
+```text
+MinorRestriction += 1
+```
+
+Reason:
+
+Access becomes significantly more restrictive after renewal.
+
+---
+
+## Examples
+
+### Example 1
+
+```text
+Initial = 12
+Reauth = 3
+```
+
+Result:
+
+```text
+Additional Minor Restriction
+```
+
+---
+
+### Example 2
+
+```text
+Initial = 12
+Reauth = 6
+```
+
+Result:
+
+```text
+No additional penalty
+```
+
+---
+
+### Example 3
+
+```text
+Initial = 12
+Reauth = 12
+```
+
+Result:
+
+```text
+No additional penalty
+```
+
+---
+
+# NULL HANDLING SUMMARY
+
+| Initial Auth | Reauth Duration | Result                                         |
+| ------------ | --------------- | ---------------------------------------------- |
+| NULL         | NULL            | Ignore Both                                    |
+| 12           | NULL            | Use Initial Only                               |
+| NULL         | 12              | Infer ReauthRequired = Yes and evaluate Reauth |
+| 12           | 12              | Evaluate Both                                  |
+| 12           | 3               | Evaluate Both + Consistency Check              |

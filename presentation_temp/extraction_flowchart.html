@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PA Policy Extraction Pipeline — Interactive Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0a0e17;
+      --bg-panel: #111827;
+      --bg-card: #1a2234;
+      --bg-card-hover: #222d45;
+      --border: rgba(255,255,255,0.08);
+      --border-active: rgba(99,179,237,0.5);
+      --text: #e8edf5;
+      --text-muted: #8b9cb8;
+      --accent-blue: #63b3ed;
+      --accent-cyan: #4fd1c5;
+      --accent-purple: #b794f4;
+      --accent-amber: #f6ad55;
+      --accent-rose: #fc8181;
+      --accent-green: #68d391;
+      --glow-blue: rgba(99,179,237,0.25);
+      --glow-cyan: rgba(79,209,197,0.2);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --font: 'DM Sans', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --sidebar-w: 380px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(99,179,237,0.12), transparent),
+        radial-gradient(ellipse 60% 40% at 90% 20%, rgba(183,148,244,0.08), transparent),
+        radial-gradient(ellipse 50% 30% at 50% 100%, rgba(79,209,197,0.06), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr var(--sidebar-w);
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      grid-column: 1 / -1;
+      padding: 1.5rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      background: rgba(10,14,23,0.85);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .logo-block h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-block p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .btn {
+      font-family: var(--font);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-active);
+    }
+
+    .btn.active {
+      background: rgba(99,179,237,0.15);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Main canvas */
+    main {
+      padding: 2rem;
+      overflow: auto;
+    }
+
+    .flow-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Phase sections */
+    .phase {
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.6s ease forwards;
+    }
+
+    .phase:nth-child(1) { animation-delay: 0.05s; }
+    .phase:nth-child(2) { animation-delay: 0.15s; }
+    .phase:nth-child(3) { animation-delay: 0.25s; }
+    .phase:nth-child(4) { animation-delay: 0.35s; }
+    .phase:nth-child(5) { animation-delay: 0.45s; }
+    .phase:nth-child(6) { animation-delay: 0.55s; }
+    .phase:nth-child(7) { animation-delay: 0.65s; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .phase-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      padding: 0.35rem 0.75rem;
+      background: var(--bg-panel);
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .phase-label .num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      background: var(--bg-card);
+    }
+
+    /* Node grid */
+    .node-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      justify-content: center;
+      gap: 1rem;
+      position: relative;
+    }
+
+    .connector-v {
+      width: 2px;
+      height: 28px;
+      background: linear-gradient(to bottom, var(--accent-blue), transparent);
+      margin: 0 auto;
+      opacity: 0.4;
+    }
+
+    .connector-h {
+      flex: 1;
+      min-width: 24px;
+      height: 2px;
+      background: linear-gradient(to right, transparent, var(--accent-cyan), transparent);
+      align-self: center;
+      opacity: 0.35;
+      max-width: 60px;
+    }
+
+    /* Nodes */
+    .node {
+      flex: 1;
+      min-width: 160px;
+      max-width: 220px;
+      padding: 1rem 1.1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .node::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--node-color, var(--accent-blue));
+      opacity: 0.8;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .node:hover {
+      transform: translateY(-3px);
+      border-color: var(--border-active);
+      box-shadow: 0 12px 40px var(--glow-blue);
+      background: var(--bg-card-hover);
+    }
+
+    .node:hover::before,
+    .node.selected::before {
+      transform: scaleX(1);
+    }
+
+    .node.selected {
+      border-color: var(--node-color, var(--accent-blue));
+      box-shadow: 0 0 0 1px var(--node-color, var(--accent-blue)), 0 16px 48px var(--glow-blue);
+    }
+
+    .node-icon {
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+      line-height: 1;
+    }
+
+    .node-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 0.35rem;
+    }
+
+    .node-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .node-tag {
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-size: 0.65rem;
+      font-weight: 500;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    .node.wide { max-width: 280px; }
+    .node.xwide { max-width: 100%; flex: 1 1 100%; }
+
+    .node[data-type="input"] { --node-color: var(--accent-green); }
+    .node[data-type="process"] { --node-color: var(--accent-blue); }
+    .node[data-type="llm"] { --node-color: var(--accent-purple); }
+    .node[data-type="validate"] { --node-color: var(--accent-amber); }
+    .node[data-type="output"] { --node-color: var(--accent-cyan); }
+    .node[data-type="cache"] { --node-color: var(--accent-rose); }
+
+    /* Loop indicator */
+    .loop-box {
+      border: 2px dashed rgba(246,173,85,0.35);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin: 1rem 0;
+      background: rgba(246,173,85,0.04);
+      position: relative;
+    }
+
+    .loop-box::after {
+      content: '? Per row × 79';
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--accent-amber);
+      background: var(--bg-deep);
+      padding: 0 0.5rem;
+    }
+
+    /* Sidebar */
+    aside {
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      padding: 1.5rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 80px);
+      position: sticky;
+      top: 80px;
+    }
+
+    .sidebar-placeholder {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+
+    .sidebar-placeholder .icon { font-size: 2.5rem; opacity: 0.4; margin-bottom: 1rem; }
+
+    .detail-panel { display: none; animation: slideIn 0.3s ease; }
+    .detail-panel.active { display: block; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .detail-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+    }
+
+    .detail-badge.input { background: rgba(104,211,145,0.15); color: var(--accent-green); }
+    .detail-badge.process { background: rgba(99,179,237,0.15); color: var(--accent-blue); }
+    .detail-badge.llm { background: rgba(183,148,244,0.15); color: var(--accent-purple); }
+    .detail-badge.validate { background: rgba(246,173,85,0.15); color: var(--accent-amber); }
+    .detail-badge.output { background: rgba(79,209,197,0.15); color: var(--accent-cyan); }
+    .detail-badge.cache { background: rgba(252,129,129,0.15); color: var(--accent-rose); }
+
+    .detail-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+    }
+
+    .detail-why {
+      font-size: 0.85rem;
+      color: var(--accent-cyan);
+      font-style: italic;
+      margin-bottom: 1rem;
+      padding-left: 0.75rem;
+      border-left: 2px solid var(--accent-cyan);
+    }
+
+    .detail-section {
+      margin-bottom: 1.25rem;
+    }
+
+    .detail-section h4 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .detail-section p, .detail-section li {
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: var(--text);
+    }
+
+    .detail-section ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .detail-section li {
+      padding: 0.35rem 0;
+      padding-left: 1rem;
+      position: relative;
+    }
+
+    .detail-section li::before {
+      content: '?';
+      position: absolute;
+      left: 0;
+      color: var(--accent-blue);
+      font-size: 0.75rem;
+    }
+
+    .detail-tech {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      background: rgba(0,0,0,0.3);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      color: var(--accent-blue);
+      word-break: break-all;
+    }
+
+    .params-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .param-chip {
+      font-size: 0.72rem;
+      padding: 0.4rem 0.6rem;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .param-chip strong { color: var(--accent-purple); }
+
+    /* Stats bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        max-height: 45vh;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        z-index: 200;
+        transform: translateY(calc(100% - 48px));
+        transition: transform 0.3s ease;
+      }
+      aside.expanded { transform: translateY(0); }
+      .sidebar-toggle {
+        display: block;
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--bg-card);
+        border: none;
+        color: var(--text);
+        font-family: var(--font);
+        font-weight: 600;
+        cursor: pointer;
+      }
+    }
+
+    @media (min-width: 1101px) {
+      .sidebar-toggle { display: none; }
+    }
+
+    .hidden-phase { display: none !important; }
+
+    /* Pulse animation for LLM nodes */
+    .node[data-type="llm"] .node-icon {
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-inner">
+        <div class="logo-block">
+          <h1>PA Policy Extraction Pipeline</h1>
+          <p>Plaque Psoriasis · 79 rows · 12 parameters · Groq Llama 3.3 70B</p>
+        </div>
+        <div class="controls">
+          <button class="btn active" data-filter="all">All Phases</button>
+          <button class="btn" data-filter="startup">Startup</button>
+          <button class="btn" data-filter="ingest">Ingestion</button>
+          <button class="btn" data-filter="section">Sectioning</button>
+          <button class="btn" data-filter="extract">Extraction</button>
+          <button class="btn" data-filter="validate">Validation</button>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#68d391"></span> Input</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#63b3ed"></span> Process</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#b794f4"></span> LLM</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#f6ad55"></span> Validate</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#4fd1c5"></span> Output</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="flow-container">
+        <div class="stats-bar">
+          <div class="stat"><div class="stat-value">79</div><div class="stat-label">Submission Rows</div></div>
+          <div class="stat"><div class="stat-value">70</div><div class="stat-label">Policy PDFs</div></div>
+          <div class="stat"><div class="stat-value">12</div><div class="stat-label">Parameters</div></div>
+          <div class="stat"><div class="stat-value">3</div><div class="stat-label">LLM Passes</div></div>
+          <div class="stat"><div class="stat-value">441</div><div class="stat-label">Max Pages</div></div>
+          <div class="stat"><div class="stat-value">~3h</div><div class="stat-label">Batch Runtime</div></div>
+        </div>
+
+        <!-- PHASE 0: STARTUP -->
+        <section class="phase" data-phase="startup">
+          <div class="phase-label"><span class="num">0</span> Startup &amp; Pre-Flight</div>
+          <div class="node-row">
+            <div class="node" data-id="env" data-type="input">
+              <div class="node-icon">??</div>
+              <div class="node-title">Load Environment</div>
+              <div class="node-sub">.env ? GROQ_API_KEY, paths</div>
+              <span class="node-tag">_load_env_file()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="drugs" data-type="input">
+              <div class="node-icon">??</div>
+              <div class="node-title">Drug Classification</div>
+              <div class="node-sub">XLSX ? branded vs generic sets</div>
+              <span class="node-tag">load_drug_classifications()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="submissions" data-type="input">
+              <div class="node-icon">??</div>
+              <div class="node-title">Load Submissions</div>
+              <div class="node-sub">79 (Filename, Brand) pairs</div>
+              <span class="node-tag">load_submissions()</span>
+            </div>
+          </div>
+          <div class="connector-v"></div>
+          <div class="node-row">
+            <div class="node" data-id="preflight" data-type="validate">
+              <div class="node-icon">??</div>
+              <div class="node-title">Pre-Flight Check</div>
+              <div class="node-sub">PDFs exist · drug presence scan · no LLM</div>
+              <span class="node-tag">preflight_check()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="determinism" data-type="llm">
+              <div class="node-icon">??</div>
+              <div class="node-title">Determinism Test</div>
+              <div class="node-sub">3 identical calls · hash compare</div>
+              <span class="node-tag">determinism_test()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="token-budget" data-type="process">
+              <div class="node-icon">??</div>
+              <div class="node-title">Token Budget</div>
+              <div class="node-sub">5,500 TPM sliding window</div>
+              <span class="node-tag">TokenBudget</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="connector-v" style="height:40px"></div>
+
+        <!-- PHASE 1: INGESTION -->
+        <section class="phase" data-phase="ingest">
+          <div class="phase-label"><span class="num">1</span> PDF Ingestion <span style="opacity:0.6">— cached per filename</span></div>
+          <div class="node-row">
+            <div class="node wide" data-id="pymupdf" data-type="process">
+              <div class="node-icon">??</div>
+              <div class="node-title">PyMuPDF Text Extract</div>
+              <div class="node-sub">Per-page get_text() · PAGE markers</div>
+              <span class="node-tag">ingest_pdf()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="vision" data-type="llm">
+              <div class="node-icon">???</div>
+              <div class="node-title">Vision OCR Fallback</div>
+              <div class="node-sub">If page &lt; 100 chars · Llama 4 Scout</div>
+              <span class="node-tag">_ocr_page_with_vision()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="pdf-cache" data-type="cache">
+              <div class="node-icon">???</div>
+              <div class="node-title">PDF Cache</div>
+              <div class="node-sub">full_text + open doc handle</div>
+              <span class="node-tag">pdf_cache[filename]</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="connector-v" style="height:40px"></div>
+
+        <!-- PHASE 2: SECTIONING -->
+        <section class="phase" data-phase="section">
+          <div class="phase-label"><span class="num">2</span> Outline-Driven Sectioning <span style="opacity:0.6">— per (filename, drug)</span></div>
+          <div class="node-row">
+            <div class="node" data-id="small-doc" data-type="process">
+              <div class="node-icon">??</div>
+              <div class="node-title">Small Doc Path</div>
+              <div class="node-sub">&lt; 50K chars ? full text</div>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="outline-a" data-type="process">
+              <div class="node-icon">??</div>
+              <div class="node-title">Stage A: Outline</div>
+              <div class="node-sub">TOC or font scan · no API</div>
+              <span class="node-tag">extract_outline()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="outline-b" data-type="llm">
+              <div class="node-icon">???</div>
+              <div class="node-title">Stage B: Map Anchors</div>
+              <div class="node-sub">1 LLM call · heading+page JSON</div>
+              <span class="node-tag">map_outline_to_sections()</span>
+            </div>
+          </div>
+          <div class="connector-v"></div>
+          <div class="node-row">
+            <div class="node" data-id="slice" data-type="process">
+              <div class="node-icon">??</div>
+              <div class="node-title">Deterministic Slice</div>
+              <div class="node-sub">char offsets from anchors</div>
+              <span class="node-tag">slice_by_anchors()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="zoom" data-type="llm">
+              <div class="node-icon">??</div>
+              <div class="node-title">Stage C: Recursive Zoom</div>
+              <div class="node-sub">If section &gt; 60K chars</div>
+              <span class="node-tag">recursive_zoom()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="assemble" data-type="process">
+              <div class="node-icon">??</div>
+              <div class="node-title">Assemble Context</div>
+              <div class="node-sub">UNIVERSAL + TABLES + DRUG + REAUTH</div>
+              <span class="node-tag">assemble_context()</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="connector-v" style="height:40px"></div>
+
+        <!-- PHASE 3: EXTRACTION LOOP -->
+        <section class="phase" data-phase="extract">
+          <div class="phase-label"><span class="num">3</span> Three-Pass LLM Extraction</div>
+          <div class="loop-box">
+            <div class="node-row">
+              <div class="node" data-id="multibrand" data-type="process">
+                <div class="node-icon">???</div>
+                <div class="node-title">Multi-Brand Scan</div>
+                <div class="node-sub">Other brands in doc for disambiguation</div>
+                <span class="node-tag">get_other_brands_in_doc()</span>
+              </div>
+            </div>
+            <div class="connector-v"></div>
+            <div class="node-row">
+              <div class="node" data-id="pass1" data-type="llm">
+                <div class="node-icon">?</div>
+                <div class="node-title">Pass 1 — Simple Params</div>
+                <div class="node-sub">Age, TB, auth, reauth, specialist, qty</div>
+                <span class="node-tag">extract_simple_params()</span>
+              </div>
+              <div class="connector-h"></div>
+              <div class="node" data-id="pass2" data-type="llm">
+                <div class="node-icon">?</div>
+                <div class="node-title">Pass 2 — Step Text</div>
+                <div class="node-sub">Verbatim combined_step_text</div>
+                <span class="node-tag">extract_step_therapy_text()</span>
+              </div>
+              <div class="connector-h"></div>
+              <div class="node" data-id="pass3" data-type="llm">
+                <div class="node-icon">?</div>
+                <div class="node-title">Pass 3 — Step Counts</div>
+                <div class="node-sub">CoT: brands, generic, phototherapy</div>
+                <span class="node-tag">extract_step_counts()</span>
+              </div>
+            </div>
+            <div class="connector-v"></div>
+            <div class="node-row">
+              <div class="node" data-id="rule-counter" data-type="process">
+                <div class="node-icon">??</div>
+                <div class="node-title">Rule-Based Counter</div>
+                <div class="node-sub">Parallel fallback + reconciliation</div>
+                <span class="node-tag">rule_based_step_count()</span>
+              </div>
+              <div class="connector-h"></div>
+              <div class="node" data-id="derive" data-type="process">
+                <div class="node-icon">??</div>
+                <div class="node-title">Derive Reauth Required</div>
+                <div class="node-sub">Param 9 — pure Python, not LLM</div>
+                <span class="node-tag">rule_reauth_required()</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="connector-v" style="height:40px"></div>
+
+        <!-- PHASE 4: VALIDATION -->
+        <section class="phase" data-phase="validate">
+          <div class="phase-label"><span class="num">4</span> Validation &amp; Quality Gates</div>
+          <div class="node-row">
+            <div class="node" data-id="format-rules" data-type="validate">
+              <div class="node-icon">??</div>
+              <div class="node-title">Format Rules</div>
+              <div class="node-sub">Age, NA vs 0, qty strict, durations</div>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="verbatim" data-type="validate">
+              <div class="node-icon">??</div>
+              <div class="node-title">Verbatim Check</div>
+              <div class="node-sub">Token-recall ? 70% vs source</div>
+              <span class="node-tag">critical_verbatim_check()</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="advisory" data-type="validate">
+              <div class="node-icon">??</div>
+              <div class="node-title">Advisory Flags</div>
+              <div class="node-sub">Contradictions · multi-brand ambiguity</div>
+            </div>
+          </div>
+          <div class="connector-v"></div>
+          <div class="node-row">
+            <div class="node" data-id="rerun" data-type="process">
+              <div class="node-icon">?</div>
+              <div class="node-title">Rerun Loop</div>
+              <div class="node-sub">Max 2 reruns on critical failure</div>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="checkpoint" data-type="cache">
+              <div class="node-icon">??</div>
+              <div class="node-title">Checkpoint</div>
+              <div class="node-sub">Every 10 rows · atomic write</div>
+              <span class="node-tag">checkpoint.json</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="connector-v" style="height:40px"></div>
+
+        <!-- PHASE 5: OUTPUT -->
+        <section class="phase" data-phase="output">
+          <div class="phase-label"><span class="num">5</span> Output</div>
+          <div class="node-row">
+            <div class="node wide" data-id="csv" data-type="output">
+              <div class="node-icon">??</div>
+              <div class="node-title">result.csv</div>
+              <div class="node-sub">79 rows × 15 columns · exact header match</div>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="debug" data-type="output">
+              <div class="node-icon">??</div>
+              <div class="node-title">Debug Log</div>
+              <div class="node-sub">JSONL append-only</div>
+              <span class="node-tag">debug_log.jsonl</span>
+            </div>
+            <div class="connector-h"></div>
+            <div class="node" data-id="access-score" data-type="output">
+              <div class="node-icon">??</div>
+              <div class="node-title">Access Score</div>
+              <div class="node-sub">Phase 2 — column empty for now</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <aside id="sidebar">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('expanded')">
+        ? Details Panel — tap to expand
+      </button>
+      <div class="sidebar-placeholder" id="placeholder">
+        <div class="icon">??</div>
+        <p>Click any node in the flowchart to see technical details, plain-language explanation, and why that step exists.</p>
+      </div>
+      <div id="detail-container"></div>
+    </aside>
+  </div>
+
+  <script>
+    const NODE_DATA = {
+      env: {
+        type: 'input',
+        title: 'Load Environment',
+        why: 'API keys and paths must be configured before any processing — fail fast if GROQ_API_KEY is missing.',
+        plain: 'Reads the .env file at project root and loads configuration like the Groq API key and folder paths. External environment variables take precedence.',
+        technical: ['_load_env_file() runs at import time', 'Keys uppercased: groq_api_key ? GROQ_API_KEY', 'Uses setdefault — never overwrites existing env vars'],
+        func: '_load_env_file()'
+      },
+      drugs: {
+        type: 'input',
+        title: 'Drug Classification',
+        why: 'Step counting depends on knowing whether Humira is a "branded step" vs methotrexate as "generic" — must match business rules, not be hardcoded.',
+        plain: 'Loads the list of PsO market-basket drugs from the Excel file and splits them into branded biologics vs generic/conventional treatments.',
+        technical: ['Tab: "PsO Brands- For Ground Truth"', 'Generics: acitretin, cyclosporine, methotrexate, vtama, zoryve', 'INN aliases added (ustekinumab ? stelara)', 'JAK inhibitors added as branded steps'],
+        func: 'load_drug_classifications()'
+      },
+      submissions: {
+        type: 'input',
+        title: 'Load Submissions Spreadsheet',
+        why: 'The spreadsheet drives the pipeline — it tells us exactly which (PDF, Brand) pairs to extract. The PDF never tells us which drugs to process.',
+        plain: 'Reads 79 rows from the Submissions tab — each row is one PDF filename + one drug brand to extract parameters for.',
+        technical: ['79 rows, ~14 unique brands', 'One PDF can appear in multiple rows', 'Column normalization: drug/brand ? Brand', 'Indication defaults to Plaque Psoriasis'],
+        func: 'load_submissions()'
+      },
+      preflight: {
+        type: 'validate',
+        title: 'Pre-Flight Check',
+        why: 'Catch missing PDFs and drug-not-found cases before burning ~240 LLM API calls.',
+        plain: 'Before extraction starts: verify all PDFs exist on disk, do a cheap text scan for each drug name, warn about mismatches.',
+        technical: ['HALT if Submissions references missing PDFs', 'Text-only ingest — no vision, no LLM', 'Populates pdf_cache for batch reuse', 'Logs first 2 pages for zero-match pairs'],
+        func: 'preflight_check()'
+      },
+      determinism: {
+        type: 'llm',
+        title: 'Determinism Test',
+        why: 'Hackathon judges re-run on Kaggle — we need to know if the model gives stable outputs at temperature 0.',
+        plain: 'Sends the same simple extraction prompt 3 times and compares hashes. Reports STABLE, MINOR_DRIFT, or SIGNIFICANT_DRIFT.',
+        technical: ['3 identical calls at temp=0', 'MD5 hash comparison', 'Logged to debug_log.jsonl'],
+        func: 'determinism_test()'
+      },
+      'token-budget': {
+        type: 'process',
+        title: 'Token Budget Throttle',
+        why: 'Groq free tier has ~6,000 tokens/minute limit. Without throttling, a 79-row batch would take ~20 hours.',
+        plain: 'Tracks token usage in a rolling 60-second window and sleeps before sending calls that would exceed the limit.',
+        technical: ['TPM_LIMIT = 5,500 (headroom under 6K)', 'est_tokens = prompt_chars/4 + max_output', 'Sliding deque of (timestamp, tokens)', 'Combined with sectioning ? ~3h batch time'],
+        func: 'TokenBudget.consume()'
+      },
+      pymupdf: {
+        type: 'process',
+        title: 'PyMuPDF Text Extraction',
+        why: 'All 70 sample PDFs are born-digital with extractable text — PyMuPDF is fast and handles page rendering for vision fallback.',
+        plain: 'Opens each PDF and extracts readable text from every page, marking page boundaries for debugging.',
+        technical: ['fitz (PyMuPDF) per-page get_text("text")', 'Page markers: ===== PAGE N =====', 'Doc handle kept open for outline extraction', 'Returns full_text, pages[], n_pages'],
+        func: 'ingest_pdf()'
+      },
+      vision: {
+        type: 'llm',
+        title: 'Vision OCR Fallback',
+        why: 'Some pages may be scanned images or table-only — text extraction returns almost nothing. Vision reads the page image.',
+        plain: 'If a page has fewer than 100 characters of extracted text, render it as an image and ask the vision AI to read it.',
+        technical: ['Model: meta-llama/llama-4-scout-17b-16e-instruct', '200 DPI PNG ? base64', 'One image per API call', 'Quality gate: reject refusals & <50 chars', 'Rare on audited dataset — defensive for judges'],
+        func: '_ocr_page_with_vision()'
+      },
+      'pdf-cache': {
+        type: 'cache',
+        title: 'PDF Cache',
+        why: 'Same PDF appears in many submission rows (multi-brand policies). Ingest once, reuse for all brands.',
+        plain: 'Stores extracted text and the open document handle keyed by filename so we never re-read the same PDF.',
+        technical: ['Key: filename string', 'Value: full_text, pages, doc_handle, vision_pages', 'Closed in finally block via close_pdf_cache()'],
+        func: 'pdf_cache[filename]'
+      },
+      'small-doc': {
+        type: 'process',
+        title: 'Small Document Fast Path',
+        why: '64 of 70 PDFs are under 50K characters — running outline sectioning on them is wasted complexity.',
+        plain: 'For smaller policies, skip the outline machinery and send the full document text directly (truncated if needed).',
+        technical: ['SMALL_DOC_CHAR_LIMIT = 50,000', 'Also triggers if outline < 5 headings', 'Truncated to MAX_CONTEXT_CHARS = 100,000'],
+        func: 'process_single_row() branch'
+      },
+      'outline-a': {
+        type: 'process',
+        title: 'Stage A — Local Outline',
+        why: 'A 441-page policy cannot go to the LLM whole. We first build a table of contents locally — no API cost.',
+        plain: 'Scan the PDF for headings using bookmarks or font size/style detection. Produces a list of section titles with page numbers.',
+        technical: ['Path 1: doc.get_toc() PDF bookmarks (~30% of PDFs)', 'Path 2: font scan — bold, large, ALL CAPS, keywords', 'Filters decision-tree noise ("3. Is the patient...")', 'Output: {page, level, text, char_offset}[]'],
+        func: 'extract_outline()'
+      },
+      'outline-b': {
+        type: 'llm',
+        title: 'Stage B — Map Outline to Sections',
+        why: 'Headings alone don\'t tell us which section has TB rules vs step therapy — one cheap LLM call on the outline (not the body) finds the four target sections.',
+        plain: 'AI reads the table of contents and identifies which headings start: universal criteria, classification tables, drug-specific section, and reauthorization.',
+        technical: ['1 LLM call per (PDF, drug) pair', 'Input: ~5-10K token outline only', 'Output: {heading, page} anchors for 4 sections', 'Page number disambiguates repeated "Step 1" headings'],
+        func: 'map_outline_to_sections()'
+      },
+      slice: {
+        type: 'process',
+        title: 'Deterministic Slice',
+        why: 'LLM returns anchors, not text — slicing is deterministic so we never risk the model paraphrasing policy language.',
+        plain: 'Uses the heading locations to cut exact text chunks from the full document for each of the four sections.',
+        technical: ['slice_by_anchors() — char offset lookup', 'MIN_SECTION_CHARS_BY_KEY per section type', 'Drug section min 15K chars (covers TIM block)', '(heading, page) tuple lookup — multi-occurrence safe'],
+        func: 'slice_by_anchors()'
+      },
+      zoom: {
+        type: 'llm',
+        title: 'Stage C — Recursive Zoom',
+        why: 'Universal criteria block alone can be 50+ pages — even after slicing, we need to zoom into relevant sub-sections.',
+        plain: 'If a section is still too large, find sub-headings within it and ask AI which ones matter for this drug and indication.',
+        technical: ['Trigger: section > MAX_SECTION_CHARS (60,000)', 'Sub-outline from HEADING patterns', 'LLM returns keep[] list of relevant headings', 'Fallback: truncate to 60K'],
+        func: 'recursive_zoom()'
+      },
+      assemble: {
+        type: 'process',
+        title: 'Assemble Context',
+        why: 'Universal TB test (Step 4) is NOT in the TREMFYA section — we MUST combine universal + drug + reauth or extraction misses critical params.',
+        plain: 'Stitches four labeled text blocks together: rules for all drugs, preferred/non-preferred tables, drug-specific criteria, and renewal rules.',
+        technical: ['Labels: [UNIVERSAL CRITERIA], [CLASSIFICATION TABLES], [DRUG-SPECIFIC], [REAUTH]', 'Hard cap MAX_CONTEXT_CHARS = 100,000', 'Truncates largest section if over cap', 'Cached: section_cache[(filename, drug)]'],
+        func: 'assemble_context()'
+      },
+      multibrand: {
+        type: 'process',
+        title: 'Multi-Brand Disambiguation',
+        why: 'Aetna-style policies list "Age: ?18 (TREMFYA, HUMIRA), ?4 (ENBREL)" in one table — model must pick the right row.',
+        plain: 'Scans the assembled context for other drug names and tells the AI to ignore values belonging to those other drugs.',
+        technical: ['get_other_brands_in_doc() — scoped to brands in doc', 'Capped at top-20 by frequency', 'Directive injected into Pass 1 & Pass 2 prompts', 'Validation: multi_brand_ambiguity_check()'],
+        func: 'get_other_brands_in_doc()'
+      },
+      pass1: {
+        type: 'llm',
+        title: 'Pass 1 — Simple Parameters',
+        why: 'Seven straightforward fields (age, TB, durations) don\'t need step-counting reasoning — separate prompt keeps outputs clean.',
+        plain: 'Extracts age limit, TB test requirement, authorization durations, reauth text, specialist types, and quantity limits.',
+        technical: ['Model: llama-3.3-70b-versatile', '7 fields — NOT reauth_required (derived)', 'Age ? >=N format; durations ? plain numbers', 'Quantity limits: strict "quantity limit" label only'],
+        func: 'extract_simple_params()',
+        params: ['Age (P1)', 'TB Test (P6)', 'Initial Auth (P7)', 'Reauth Duration (P8)', 'Reauth Requirements (P10)', 'Specialist Types (P11)', 'Quantity Limits (P12)']
+      },
+      pass2: {
+        type: 'llm',
+        title: 'Pass 2 — Step Therapy Text',
+        why: 'Step therapy text must be verbatim with AND/OR preserved — dedicated prompt prevents mixing with eligibility criteria.',
+        plain: 'Copies the exact policy wording for all prior treatment requirements the patient must satisfy before approval.',
+        technical: ['Single combined_step_text blob', 'Preserves AND/OR connectors exactly', 'Excludes TB, age, diagnosis, reauth, other indications', 'Returns NA if no step therapy'],
+        func: 'extract_step_therapy_text()',
+        params: ['Step Therapy Requirements (P2)']
+      },
+      pass3: {
+        type: 'llm',
+        title: 'Pass 3 — Step Counting (CoT)',
+        why: 'Counting steps requires legal-style AND/OR reasoning — the hardest extraction task. Chain-of-thought with worked examples anchors the model.',
+        plain: 'Reasons through universal + indication-specific steps, resolves OR conditions (take easiest path), and counts branded, generic, and phototherapy steps.',
+        technical: ['Input: Pass 2 text only (~1-2K tokens) + section markers', '6-step CoT: list universal ? indication ? merge AND ? resolve OR ? classify ? count', 'Worked examples: Oregon Medicaid + Reference tab', '0 steps ? "NA" not "0"'],
+        func: 'extract_step_counts()',
+        params: ['# Steps Brands (P3)', '# Steps Generic (P4)', 'Step through Phototherapy (P5)']
+      },
+      'rule-counter': {
+        type: 'process',
+        title: 'Rule-Based Step Counter',
+        why: 'If Pass 3 LLM fails or gives wrong counts, we need a deterministic backup — project-ending risk without it.',
+        plain: 'A Python program independently counts drug names and generic patterns in the step text as a sanity check and fallback.',
+        technical: ['Named drug regex against BRANDED_DRUGS / GENERIC_DRUGS', 'GENERIC_STEP_PATTERNS: topical CS, MTX, "another topical"', 'OR-clustering: Humira OR Enbrel = 1 step', 'reconcile_step_counts(): agree / minor / major / fallback'],
+        func: 'rule_based_step_count()'
+      },
+      derive: {
+        type: 'process',
+        title: 'Derive Reauth Required',
+        why: 'Param 9 is 100% logical — if duration or requirements exist, reauth is Yes. Asking the LLM wastes tokens and gets overwritten.',
+        plain: 'Automatically sets "Reauthorization Required" to Yes if either reauth duration or reauth requirements text was found.',
+        technical: ['IF reauth_duration non-NA OR reauth_requirements non-NA ? Yes', 'ELSE ? No', 'Never extracted by LLM'],
+        func: 'rule_reauth_required()'
+      },
+      'format-rules': {
+        type: 'validate',
+        title: 'Format & Derivation Rules',
+        why: 'LLM outputs drift from the exact sentinel contract (NA vs 0, age format) — Python rules enforce the submission schema.',
+        plain: 'Fixes formatting: age as >=N, zero steps become NA, reject mislabeled quantity limits, ensure auth duration is never blank.',
+        technical: ['rule_age_format(), rule_step_na_format()', 'rule_quantity_limits_strict()', 'rule_auth_duration() ? Unspecified', 'Mutates params in place — no rerun'],
+        func: 'validate_all() layer 1'
+      },
+      verbatim: {
+        type: 'validate',
+        title: 'Verbatim Presence Check',
+        why: 'Most powerful automated anti-hallucination check — extracted text must actually appear in the source PDF.',
+        plain: 'Checks that copied text fields (step therapy, reauth, quantity limits) have enough word overlap with the original PDF text.',
+        technical: ['token_recall(extracted, source) ? threshold', 'Thresholds: 0.70 step/reauth, 0.80 quantity', 'Tolerates PDF ligatures, soft hyphens', 'Failure ? critical ? triggers rerun'],
+        func: 'critical_verbatim_check()'
+      },
+      advisory: {
+        type: 'validate',
+        title: 'Advisory Contradiction Checks',
+        why: 'Verbatim check catches hallucination, not semantic errors — these rules flag suspicious combinations for human review.',
+        plain: 'Flags rows where TB=test Yes but text says no testing, or step text mentions brands but count is NA, etc.',
+        technical: ['TB_CONTRADICTION, BRAND_MISSED, REAUTH_CONTRADICTION', 'AGE_OUT_OF_RANGE, SPECIALIST_VAGUE', 'MULTI_BRAND_AMBIGUOUS_* for age/qty/specialist', 'Advisory only — no auto-rerun'],
+        func: 'semantic_contradiction_checks()'
+      },
+      rerun: {
+        type: 'process',
+        title: 'Rerun Loop',
+        why: 'Transient LLM failures or hallucinations can be recovered — rerun with fresh section assembly up to 2 times.',
+        plain: 'If critical validation fails (likely hallucination or missed step counts), re-run the full extraction for that row.',
+        technical: ['MAX_PIPELINE_RERUNS = 2', 'Invalidates section_cache for that (filename, drug)', 'After max reruns: emit row with CRITICAL_VALIDATION_FAILED warning'],
+        func: 'process_single_row() recursion'
+      },
+      checkpoint: {
+        type: 'cache',
+        title: 'Checkpoint & Resume',
+        why: '79 rows × ~3 hours — batch can be interrupted by quota, crash, or Ctrl+C. Resume without redoing completed work.',
+        plain: 'Saves progress every 10 rows so you can stop and restart. Already-completed rows are skipped on resume.',
+        technical: ['Key: (Filename, Brand) tuple', 'Atomic write: temp file ? os.replace', 'CHECKPOINT_INTERVAL = 10', 'DailyQuotaExceeded ? save + exit code 2'],
+        func: '_atomic_checkpoint_write()'
+      },
+      csv: {
+        type: 'output',
+        title: 'result.csv',
+        why: 'Final deliverable for hackathon judges — must match exact column names and 79-row format.',
+        plain: 'The submission spreadsheet with all 12 extracted parameters filled in for each PDF + brand combination.',
+        technical: ['79 rows × 15 columns', 'Case-sensitive headers (Step through-Phototherapy)', 'Access Score column present but empty (Phase 2)'],
+        func: 'save_csv()'
+      },
+      debug: {
+        type: 'output',
+        title: 'Debug Log (JSONL)',
+        why: 'When extraction fails, we need an audit trail — every retry, vision fallback, rerun, and warning.',
+        plain: 'Append-only log file recording every significant event during pipeline execution for debugging.',
+        technical: ['Append-only JSONL — O(1) per write', 'Events: retry, verbatim_failed, rerun, vision_fallback', 'End-of-batch summary printed to console'],
+        func: 'log_debug()'
+      },
+      'access-score': {
+        type: 'output',
+        title: 'Access Score (Phase 2)',
+        why: 'Scores 0-100 measure policy restrictiveness vs FDA label — deferred until extraction is validated on ground truth.',
+        plain: 'Planned: bucket classification (0/25/50/75/100) based on step therapy existence, then within-bucket deductions for age, TB, auth duration.',
+        technical: ['Bucket 25 hard trigger: any step therapy or mandatory phototherapy', 'Within-bucket: -3 generic step, -4 branded, -3 photo, -2 age', 'FDA baselines: TREMFYA ?18/?6, STELARA ?6', 'Not implemented in Phase 1'],
+        func: 'Phase 2 — classify_bucket()'
+      }
+    };
+
+    const detailContainer = document.getElementById('detail-container');
+    const placeholder = document.getElementById('placeholder');
+    let selectedNode = null;
+
+    function renderDetail(id) {
+      const data = NODE_DATA[id];
+      if (!data) return;
+
+      placeholder.style.display = 'none';
+      detailContainer.innerHTML = '';
+
+      const panel = document.createElement('div');
+      panel.className = 'detail-panel active';
+
+      let paramsHtml = '';
+      if (data.params) {
+        paramsHtml = `<div class="detail-section"><h4>Parameters Extracted</h4><div class="params-grid">${data.params.map(p => `<div class="param-chip">${p}</div>`).join('')}</div></div>`;
+      }
+
+      panel.innerHTML = `
+        <span class="detail-badge ${data.type}">${data.type}</span>
+        <h2 class="detail-title">${data.title}</h2>
+        <p class="detail-why">${data.why}</p>
+        <div class="detail-section">
+          <h4>Plain Language</h4>
+          <p>${data.plain}</p>
+        </div>
+        <div class="detail-section">
+          <h4>Technical Details</h4>
+          <ul>${data.technical.map(t => `<li>${t}</li>`).join('')}</ul>
+        </div>
+        ${paramsHtml}
+        <div class="detail-section">
+          <h4>Function / Key</h4>
+          <div class="detail-tech">${data.func}</div>
+        </div>
+      `;
+
+      detailContainer.appendChild(panel);
+
+      if (window.innerWidth <= 1100) {
+        document.getElementById('sidebar').classList.add('expanded');
+      }
+    }
+
+    document.querySelectorAll('.node[data-id]').forEach(node => {
+      node.addEventListener('click', () => {
+        if (selectedNode) selectedNode.classList.remove('selected');
+        selectedNode = node;
+        node.classList.add('selected');
+        renderDetail(node.dataset.id);
+      });
+    });
+
+    // Phase filter
+    const phaseMap = {
+      all: null,
+      startup: ['startup'],
+      ingest: ['ingest'],
+      section: ['section'],
+      extract: ['extract'],
+      validate: ['validate', 'output']
+    };
+
+    document.querySelectorAll('.controls .btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.controls .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.dataset.filter;
+        const allowed = phaseMap[filter];
+
+        document.querySelectorAll('.phase').forEach(phase => {
+          if (!allowed) {
+            phase.classList.remove('hidden-phase');
+          } else {
+            phase.classList.toggle('hidden-phase', !allowed.includes(phase.dataset.phase));
+          }
+        });
+      });
+    });
+
+    // Auto-select first node on load
+    setTimeout(() => {
+      const first = document.querySelector('.node[data-id="submissions"]');
+      if (first) first.click();
+    }, 800);
+  </script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+{"event": "phase_0_smoke", "args": {"smoke_test": false, "skip_preflight": false, "skip_smoke_gate": false, "force_rerun": [], "pdf_dir": null, "xlsx_path": null, "output_path": null}}
+{"event": "phase_1_smoke", "branded_count": 50, "generic_count": 5, "submissions_rows": 79, "unique_filenames": 70, "unique_brands": 15}
+{"event": "vision_fallback_stub", "page_num": 13, "fallback_chars": 50}
+{"event": "vision_fallback_stub", "page_num": 14, "fallback_chars": 46}
+{"event": "vision_fallback_stub", "page_num": 13, "fallback_chars": 50}
+{"event": "vision_fallback_stub", "page_num": 14, "fallback_chars": 46}
+{"event": "tpm_throttle_sleep", "seconds": 60.15, "tokens_in_window": 4107, "would_add": 4111}
+{"event": "json_parse_error_first", "error": "No JSON object found: Sure! The answer is age >=18. Hope this helps!", "raw": "Sure! The answer is age >=18. Hope this helps!"}
+{"event": "json_parse_error_first", "error": "No JSON object found: The age requirement is 18 or older.", "raw": "The age requirement is 18 or older."}
+{"event": "tpm_throttle_sleep", "seconds": 60.22, "tokens_in_window": 4111, "would_add": 4151}
+{"event": "tpm_throttle_sleep", "seconds": 60.2, "tokens_in_window": 4151, "would_add": 5620}
+{"event": "tpm_throttle_sleep", "seconds": 60.13, "tokens_in_window": 4107, "would_add": 4112}
+{"event": "tpm_throttle_sleep", "seconds": 59.39, "tokens_in_window": 5620, "would_add": 4124}
+{"event": "json_parse_error_first", "error": "No JSON object found: The age requirement is 18 or older.", "raw": "The age requirement is 18 or older."}
+{"event": "tpm_throttle_sleep", "seconds": 60.04, "tokens_in_window": 4112, "would_add": 4151}
+{"event": "tpm_throttle_sleep", "seconds": 59.16, "tokens_in_window": 4124, "would_add": 4124}
+{"event": "tpm_throttle_sleep", "seconds": 60.18, "tokens_in_window": 4151, "would_add": 5617}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 4124, "would_add": 4124}
+{"event": "determinism_test", "result": "STABLE", "n_unique": 1, "outputs": ["{\"age\": \">=18\"}", "{\"age\": \">=18\"}", "{\"age\": \">=18\"}"]}
+{"event": "tpm_throttle_sleep", "seconds": 39.76, "tokens_in_window": 5617, "would_add": 4124}
+{"event": "tpm_throttle_sleep", "seconds": 58.75, "tokens_in_window": 4124, "would_add": 4124}
+{"event": "tpm_throttle_sleep", "seconds": 60.24, "tokens_in_window": 4124, "would_add": 4124}
+{"event": "determinism_test", "result": "STABLE", "n_unique": 1, "outputs": ["{\"age\": \">=18\"}", "{\"age\": \">=18\"}", "{\"age\": \">=18\"}"]}
+{"event": "retry_giving_up_non_retryable", "error": "deque index out of range"}
+{"event": "vision_fallback_failed", "page_num": 13, "error": "deque index out of range"}
+{"event": "retry_giving_up_non_retryable", "error": "deque index out of range"}
+{"event": "vision_fallback_failed", "page_num": 14, "error": "deque index out of range"}
+{"event": "vision_fallback_used", "page_num": 13, "chars_returned": 2930}
+{"event": "tpm_throttle_sleep", "seconds": 58.79, "tokens_in_window": 3105, "would_add": 3105}
+{"event": "vision_fallback_used", "page_num": 14, "chars_returned": 2901}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "tpm_throttle_sleep", "seconds": 59.92, "tokens_in_window": 4628, "would_add": 3105}
+{"event": "vision_fallback_used", "page_num": 13, "chars_returned": 2250}
+{"event": "tpm_throttle_sleep", "seconds": 59.12, "tokens_in_window": 3105, "would_add": 3105}
+{"event": "vision_fallback_used", "page_num": 14, "chars_returned": 3525}
+{"event": "outline_from_fonts", "n_headings": 8246}
+{"event": "tpm_throttle_sleep", "seconds": 55.64, "tokens_in_window": 3105, "would_add": 82154}
+{"event": "daily_quota_exceeded", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.3-70b-versatile` in organization `org_01ksptvgzmf9hakvevggpwygs4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Requested 120633, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"}
+{"event": "vision_fallback_used", "page_num": 13, "chars_returned": 2108}
+{"event": "tpm_throttle_sleep", "seconds": 59.0, "tokens_in_window": 3105, "would_add": 3105}
+{"event": "vision_fallback_used", "page_num": 14, "chars_returned": 2335}
+{"event": "outline_from_fonts", "n_headings": 2021}
+{"event": "outline_from_fonts", "n_headings": 2021}
+{"event": "outline_pruned", "before": 2021, "after": 191}
+{"event": "tpm_throttle_sleep", "seconds": 41.84, "tokens_in_window": 3105, "would_add": 6790}
+{"event": "vision_fallback_used", "page_num": 13, "chars_returned": 2796}
+{"event": "tpm_throttle_sleep", "seconds": 58.72, "tokens_in_window": 3105, "would_add": 3105}
+{"event": "vision_fallback_used", "page_num": 13, "chars_returned": 2794}
+{"event": "tpm_throttle_sleep", "seconds": 41.48, "tokens_in_window": 3105, "would_add": 3105}
+{"event": "vision_fallback_used", "page_num": 14, "chars_returned": 2850}
+{"event": "outline_from_fonts", "n_headings": 2021}
+{"event": "outline_pruned", "before": 2021, "after": 191}
+{"event": "tpm_throttle_sleep", "seconds": 42.16, "tokens_in_window": 3105, "would_add": 6790}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 8643, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 8643}
+{"event": "tpm_throttle_sleep", "seconds": 58.98, "tokens_in_window": 8643, "would_add": 8581}
+{"event": "tpm_throttle_sleep", "seconds": 58.47, "tokens_in_window": 8581, "would_add": 5261}
+{"event": "drug_not_found_preflight", "filename": "287728-4459856.pdf", "drug": "STELARA", "first_2_pages_preview": "\u00a9 2024 Asuris. All rights reserved.  \ndru672.7 \n Page 1 of 21 \n \nMedication Policy Manual \nPolicy No: dru672  \nTopic: Medications for Multiple Myeloma, other \ncancers, and other hematologic disorders  \nDate of Origin: October 1, 2021 \n\u2022 Darzalex, daratumumab \n\u2022 Darzalex Faspro, daratumumab and \nhyaluronidase-fihj \n\u2022 Elrexfio (elranatamab-bcmm) \n\u2022 Empliciti, elotuzumab \n\u2022 Kyprolis, carfilzomib \n\u2022 Ninlaro, ixazomib \n\u2022 Pomalyst, pomalidomide \n\u2022 Sarclisa, isatuximab-irfc \n\u2022 Talvey (talquetamab-tgvs) \n\u2022 Tecvayli, teclistamab-cqyv \nCommittee Approval Date: June 20, 2024 \nNext Review Date: 2025 \nEffective Date: September 1, 2024 \n \n \nIMPORTANT REMINDER \nThis Medication Policy has been developed through consideration of medical necessity, generally \naccepted standards of medical practice, and review of medical literature and government approval \nstatus. \n \nBenefit determinations should be based in all cases on the applicable contract language. To the \nextent there are any conflicts between these guidelines and the contract language, the contract \nlanguage will control. \n \nThe purpose of Medication Policy is to provide a guide to coverage. Medication Policy is not \nintended to dictate to providers how to practice medicine. Providers are expected to exercise their \nmedical judgment in providing the most appropriate care. \n \nDescription \nMedications included in this policy are used primarily to treat multiple myeloma, but also \ninclude various other cancers, and other hematologic disorders.  \n \n\n\u00a9 2024 Asuris. All rights reserved.  \ndru672.7 \n Page 2 of 21 \nPolicy/Criteria \nMost contracts require pre-authorization approval of Medications for Multiple Myeloma, other \ncancers, and other hematologic disorders (\u201cMedications for MM\u201d) prior to coverage.  \nI. \nContinuation of therapy (COT): Medications for MM may be considered medically \nnecessary for COT when criteria A and B below are met. \nA. \nThe patient is established on this therapy AND one of the following situations \napplies (criterion 1 or 2 below): \n1. \nPrior to current health plan membership AND the medication was \ncovered by another health plan.  \n \nPLEASE NOTE: If the diagnosis is not listed in the coverage criteria \nbelow, written documentation of coverage must be provided, such as an \napproval letter or paid claim. \nOR \n2. \nThe medication was initiated for acute disease management, as part of an \nacute unscheduled, inpatient hospital admission.  \nAND  \nB. \nIf the diagnosis is listed in the \u2018Not Medically Necessary Uses\u2019 or \u2018Investigational \nUses\u2019 coverage criteria below, documentation of clinical benefit, such as disease \nstability as detailed in the reauthorization criteria must be provided. \n \nPlease note: Medications obtained as samples, coupons, or promotions, paying cash for a prescription \n(\u201cout-of-pocket\u201d) as an eligible patient, or any other method of obtaining medications outside of an \nestablished health plan benefit (from your insurance) does NOT necessarily establish medical necessity. \nMedication policy criteria apply for coverage, per the terms of the member contract with the health plan. \n \nII. \nNew starts (treatment-na\u00efve) patients \u2013 Medically Necessary Uses: \nMedications for multiple myeloma (MM) (as listed in Table 1) may be considered \nmedically necessary when there is clinical documentation (including, but not limited to \nchart notes) that the applicable diagnosis-based criteria below are met. \n \n \n"}
+{"event": "request_too_large_aborted", "kind": "text", "est_tokens": 107096, "limit": 90000, "prompt_chars": 412000, "system_chars": 0}
+{"event": "text_model_exhausted", "model": "llama-3.3-70b-versatile"}
+{"event": "text_model_fallback", "from": "llama-3.3-70b-versatile", "to": "qwen/qwen3-32b"}
+{"event": "tpm_throttle_sleep", "seconds": 60.5, "tokens_in_window": 4097, "would_add": 4097}
+{"event": "tpm_throttle_sleep", "seconds": 60.5, "tokens_in_window": 4097, "would_add": 4097}
+{"event": "text_model_exhausted", "model": "llama-3.3-70b-versatile"}
+{"event": "text_model_fallback", "from": "llama-3.3-70b-versatile", "to": "qwen/qwen3-32b"}
+{"event": "tpm_throttle_sleep", "seconds": 60.5, "tokens_in_window": 4097, "would_add": 4097}
+{"event": "text_model_exhausted", "model": "qwen/qwen3-32b"}
+{"event": "text_model_fallback", "from": "qwen/qwen3-32b", "to": "openai/gpt-oss-120b"}
+{"event": "tpm_throttle_sleep", "seconds": 60.5, "tokens_in_window": 4097, "would_add": 4097}
+{"event": "text_model_exhausted", "model": "openai/gpt-oss-120b"}
+{"event": "all_text_models_exhausted"}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "section_full_doc_path", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "outline_size": 7, "text_size": 15650}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 8643, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 8643}
+{"event": "tpm_throttle_sleep", "seconds": 59.34, "tokens_in_window": 8643, "would_add": 8581}
+{"event": "tpm_throttle_sleep", "seconds": 59.3, "tokens_in_window": 8581, "would_add": 5261}
+{"event": "outline_from_fonts", "n_headings": 122}
+{"event": "tpm_throttle_sleep", "seconds": 58.92, "tokens_in_window": 5261, "would_add": 6237}
+{"event": "tpm_throttle_sleep", "seconds": 59.96, "tokens_in_window": 6237, "would_add": 9911}
+{"event": "tpm_throttle_sleep", "seconds": 59.41, "tokens_in_window": 9911, "would_add": 9849}
+{"event": "tpm_throttle_sleep", "seconds": 58.63, "tokens_in_window": 9849, "would_add": 5424}
+{"event": "row_warnings", "filename": "148593-4960549.pdf", "drug": "STELARA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm1_rule2", "STEP_COUNT_MINOR_DISAGREE_generic_llm1_rule2", "PHOTO_DISAGREE_llmYes_ruleNo", "MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "outline_from_fonts", "n_headings": 50}
+{"event": "section_full_doc_path", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "outline_size": 50, "text_size": 41024}
+{"event": "tpm_throttle_sleep", "seconds": 58.55, "tokens_in_window": 5424, "would_add": 15017}
+{"event": "tpm_throttle_sleep", "seconds": 53.74, "tokens_in_window": 15017, "would_add": 14955}
+{"event": "text_model_exhausted", "model": "llama-3.3-70b-versatile"}
+{"event": "text_model_fallback", "from": "llama-3.3-70b-versatile", "to": "qwen/qwen3-32b"}
+{"event": "tpm_throttle_sleep", "seconds": 60.31, "tokens_in_window": 14955, "would_add": 14955}
+{"event": "text_model_exhausted", "model": "qwen/qwen3-32b"}
+{"event": "text_model_fallback", "from": "qwen/qwen3-32b", "to": "openai/gpt-oss-120b"}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 14955, "would_add": 14955}
+{"event": "text_model_exhausted", "model": "openai/gpt-oss-120b"}
+{"event": "all_text_models_exhausted"}
+{"event": "daily_quota_exceeded", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `openai/gpt-oss-120b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 15269, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"}
+{"event": "daily_quota_exceeded", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `openai/gpt-oss-120b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 15269, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T08:49:31.571+00:00", "duration_sec": 0.3, "est_tokens": 4103, "prompt_tokens": 42, "completion_tokens": 2, "total_tokens": 44, "prompt_chars": 30, "system_chars": 0}
+{"event": "outline_from_fonts", "n_headings": 50}
+{"event": "section_full_doc_path", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "outline_size": 50, "text_size": 41024}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 15019, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 15019}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T08:50:58.412+00:00", "duration_sec": 0.141, "est_tokens": 15019, "error": "Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 12000, Requested 15774, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_lim"}
+{"event": "text_model_exhausted", "model": "llama-3.3-70b-versatile"}
+{"event": "text_model_fallback", "from": "llama-3.3-70b-versatile", "to": "qwen/qwen3-32b"}
+{"event": "tpm_throttle_sleep", "seconds": 60.36, "tokens_in_window": 15019, "would_add": 15019}
+{"event": "llm_call_failed", "kind": "text", "model": "qwen/qwen3-32b", "started_at": "2026-05-30T08:51:58.914+00:00", "duration_sec": 0.206, "est_tokens": 15019, "error": "Error code: 413 - {'error': {'message': 'Request too large for model `qwen/qwen3-32b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 16501, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceede"}
+{"event": "text_model_exhausted", "model": "qwen/qwen3-32b"}
+{"event": "text_model_fallback", "from": "qwen/qwen3-32b", "to": "openai/gpt-oss-120b"}
+{"event": "tpm_throttle_sleep", "seconds": 60.29, "tokens_in_window": 15019, "would_add": 15019}
+{"event": "llm_call_failed", "kind": "text", "model": "openai/gpt-oss-120b", "started_at": "2026-05-30T08:52:59.417+00:00", "duration_sec": 0.102, "est_tokens": 15019, "error": "Error code: 413 - {'error': {'message': 'Request too large for model `openai/gpt-oss-120b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 15373, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_ex"}
+{"event": "text_model_exhausted", "model": "openai/gpt-oss-120b"}
+{"event": "all_text_models_exhausted"}
+{"event": "daily_quota_exceeded", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `openai/gpt-oss-120b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 15373, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"}
+{"event": "daily_quota_exceeded", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `openai/gpt-oss-120b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 15373, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"}
+{"event": "context_truncated_for_tpm", "drug": "TREMFYA", "from_chars": 39825, "to_chars": 30000, "drug_hits_total": 3, "drug_hits_kept": 3, "slice_start": 4901, "slice_end": 34901}
+{"event": "context_truncated_for_tpm", "drug": "TREMFYA", "from_chars": 79825, "to_chars": 30000, "drug_hits_total": 3, "drug_hits_kept": 3, "slice_start": 24901, "slice_end": 54901}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T09:27:13.751+00:00", "duration_sec": 0.361, "est_tokens": 4107, "max_tokens_param": 4096, "prompt_tokens": 45, "completion_tokens": 2, "total_tokens": 47, "prompt_chars": 47, "system_chars": 0}
+{"event": "outline_from_fonts", "n_headings": 50}
+{"event": "section_full_doc_path", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "outline_size": 50, "text_size": 41024}
+{"event": "context_truncated_for_tpm", "drug": "TREMFYA", "from_chars": 41024, "to_chars": 30000, "drug_hits_total": 121, "drug_hits_kept": 103, "slice_start": 8039, "slice_end": 38039}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 9191, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 9191}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T09:34:15.084+00:00", "duration_sec": 1.131, "est_tokens": 9191, "max_tokens_param": 1024, "prompt_tokens": 8738, "completion_tokens": 71, "total_tokens": 8809, "prompt_chars": 32191, "system_chars": 477}
+{"event": "context_truncated_for_tpm", "drug": "TREMFYA", "from_chars": 41024, "to_chars": 30000, "drug_hits_total": 121, "drug_hits_kept": 103, "slice_start": 8039, "slice_end": 38039}
+{"event": "tpm_throttle_sleep", "seconds": 59.36, "tokens_in_window": 9191, "would_add": 10152}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T09:35:15.589+00:00", "duration_sec": 0.922, "est_tokens": 10152, "max_tokens_param": 2048, "prompt_tokens": 8641, "completion_tokens": 24, "total_tokens": 8665, "prompt_chars": 31942, "system_chars": 477}
+{"event": "row_warnings", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "warnings": ["MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "outline_from_fonts", "n_headings": 32}
+{"event": "section_full_doc_path", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "outline_size": 32, "text_size": 13404}
+{"event": "tpm_throttle_sleep", "seconds": 59.53, "tokens_in_window": 10152, "would_add": 5005}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T09:36:16.097+00:00", "duration_sec": 0.935, "est_tokens": 5005, "max_tokens_param": 1024, "prompt_tokens": 3888, "completion_tokens": 173, "total_tokens": 4061, "prompt_chars": 15447, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.56, "tokens_in_window": 5005, "would_add": 5966}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T09:37:16.602+00:00", "duration_sec": 0.95, "est_tokens": 5966, "max_tokens_param": 2048, "prompt_tokens": 3791, "completion_tokens": 207, "total_tokens": 3998, "prompt_chars": 15198, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.55, "tokens_in_window": 5966, "would_add": 2773}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T09:38:17.107+00:00", "duration_sec": 1.27, "est_tokens": 2773, "max_tokens_param": 1500, "prompt_tokens": 1373, "completion_tokens": 401, "total_tokens": 1774, "prompt_chars": 4615, "system_chars": 477}
+{"event": "row_warnings", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm1_rule2"]}
+{"event": "outline_from_fonts", "n_headings": 45}
+{"event": "section_full_doc_path", "filename": "324603-4962713.pdf", "drug": "STELARA", "outline_size": 45, "text_size": 15594}
+{"event": "tpm_throttle_sleep", "seconds": 59.18, "tokens_in_window": 2773, "would_add": 5564}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T09:39:17.617+00:00", "duration_sec": 1.074, "est_tokens": 5564, "max_tokens_param": 1024, "prompt_tokens": 4654, "completion_tokens": 178, "total_tokens": 4832, "prompt_chars": 17684, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.43, "tokens_in_window": 5564, "would_add": 6526}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "started_at": "2026-05-30T09:40:18.127+00:00", "duration_sec": 0.085, "est_tokens": 6526, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98701, Requested 4735. Please try again in 49m28.704s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_ex"}
+{"event": "text_model_exhausted", "model": "llama-3.3-70b-versatile"}
+{"event": "text_model_fallback", "from": "llama-3.3-70b-versatile", "to": "qwen/qwen3-32b"}
+{"event": "tpm_throttle_sleep", "seconds": 60.41, "tokens_in_window": 6526, "would_add": 6526}
+{"event": "llm_call_failed", "kind": "text", "model": "qwen/qwen3-32b", "started_at": "2026-05-30T09:41:18.635+00:00", "duration_sec": 0.167, "est_tokens": 6526, "classified_as": "tpm", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `qwen/qwen3-32b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6814, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded"}
+{"event": "tpm_request_too_large", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `qwen/qwen3-32b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6814, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"}
+{"event": "tpm_request_too_large", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `qwen/qwen3-32b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6814, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"}
+{"event": "row_failed", "filename": "324603-4962713.pdf", "drug": "STELARA", "error": "Error code: 413 - {'error': {'message': 'Request too large for model `qwen/qwen3-32b` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6814, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "test"}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T10:46:51.937+00:00", "duration_sec": 0.0, "est_tokens": 1502, "classified_as": "tpd", "error": "Error 429 - rate_limit_exceeded on tokens per day (TPD): Limit 100000, Requested 5000"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T10:46:51.937+00:00", "duration_sec": 0.0, "est_tokens": 1502, "max_tokens_param": 1500, "prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110, "prompt_chars": 11, "system_chars": 0}
+{"event": "tpm_throttle_sleep", "seconds": 60.5, "tokens_in_window": 3004, "would_add": 4103}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T10:47:52.442+00:00", "duration_sec": 0.192, "est_tokens": 4103, "max_tokens_param": 4096, "prompt_tokens": 42, "completion_tokens": 2, "total_tokens": 44, "prompt_chars": 30, "system_chars": 0}
+{"event": "outline_from_fonts", "n_headings": 50}
+{"event": "section_full_doc_path", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "outline_size": 50, "text_size": 41024}
+{"event": "context_truncated_for_tpm", "drug": "TREMFYA", "from_chars": 41024, "to_chars": 30000, "drug_hits_total": 121, "drug_hits_kept": 103, "slice_start": 8039, "slice_end": 38039}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 9392, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 9392}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T10:53:12.080+00:00", "duration_sec": 0.846, "est_tokens": 9392, "max_tokens_param": 1024, "prompt_tokens": 8560, "completion_tokens": 71, "total_tokens": 8631, "prompt_chars": 32998, "system_chars": 477}
+{"event": "context_truncated_for_tpm", "drug": "TREMFYA", "from_chars": 41024, "to_chars": 30000, "drug_hits_total": 121, "drug_hits_kept": 103, "slice_start": 8039, "slice_end": 38039}
+{"event": "tpm_throttle_sleep", "seconds": 59.65, "tokens_in_window": 9392, "would_add": 10476}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T10:54:12.585+00:00", "duration_sec": 0.687, "est_tokens": 10476, "max_tokens_param": 2048, "prompt_tokens": 8570, "completion_tokens": 21, "total_tokens": 8591, "prompt_chars": 33237, "system_chars": 477}
+{"event": "row_warnings", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "warnings": ["MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "outline_from_fonts", "n_headings": 32}
+{"event": "section_full_doc_path", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "outline_size": 32, "text_size": 13404}
+{"event": "tpm_throttle_sleep", "seconds": 59.75, "tokens_in_window": 10476, "would_add": 5207}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T10:55:13.092+00:00", "duration_sec": 0.764, "est_tokens": 5207, "max_tokens_param": 1024, "prompt_tokens": 3964, "completion_tokens": 180, "total_tokens": 4144, "prompt_chars": 16256, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.74, "tokens_in_window": 5207, "would_add": 6291}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T10:56:13.601+00:00", "duration_sec": 0.91, "est_tokens": 6291, "max_tokens_param": 2048, "prompt_tokens": 3974, "completion_tokens": 254, "total_tokens": 4228, "prompt_chars": 16495, "system_chars": 477}
+{"event": "pass3_failed_using_rule_fallback", "error": "name 'a' is not defined", "filename": "176207-4867884.pdf", "drug": "TREMFYA"}
+{"event": "row_warnings", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_RULE_FALLBACK"]}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "section_full_doc_path", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "outline_size": 7, "text_size": 15650}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 5774, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 5774}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:03:49.421+00:00", "duration_sec": 1.311, "est_tokens": 5774, "max_tokens_param": 1024, "prompt_tokens": 4975, "completion_tokens": 355, "total_tokens": 5330, "prompt_chars": 18523, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.19, "tokens_in_window": 5774, "would_add": 6857}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:04:49.927+00:00", "duration_sec": 1.102, "est_tokens": 6857, "max_tokens_param": 2048, "prompt_tokens": 4985, "completion_tokens": 246, "total_tokens": 5231, "prompt_chars": 18762, "system_chars": 477}
+{"event": "pass3_failed_using_rule_fallback", "error": "name 'a' is not defined", "filename": "330109-4880941.pdf", "drug": "TREMFYA"}
+{"event": "row_warnings", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_RULE_FALLBACK"]}
+{"event": "outline_from_fonts", "n_headings": 122}
+{"event": "tpm_throttle_sleep", "seconds": 58.9, "tokens_in_window": 6857, "would_add": 2653}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:05:50.432+00:00", "duration_sec": 0.075, "est_tokens": 2653, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 96901, Requested 3257. Please try again in 2m16.512s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exc"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:05:50.508+00:00", "duration_sec": 0.419, "est_tokens": 2653, "max_tokens_param": 512, "prompt_tokens": 2649, "completion_tokens": 93, "total_tokens": 2742, "prompt_chars": 8089, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.99, "tokens_in_window": 5306, "would_add": 7716}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:06:50.937+00:00", "duration_sec": 1.129, "est_tokens": 7716, "max_tokens_param": 1024, "prompt_tokens": 7021, "completion_tokens": 211, "total_tokens": 7232, "prompt_chars": 26293, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.37, "tokens_in_window": 7716, "would_add": 8800}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:07:51.440+00:00", "duration_sec": 0.589, "est_tokens": 8800, "max_tokens_param": 2048, "prompt_tokens": 7031, "completion_tokens": 21, "total_tokens": 7052, "prompt_chars": 26532, "system_chars": 477}
+{"event": "row_warnings", "filename": "148593-4960549.pdf", "drug": "STELARA", "warnings": ["MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "outline_from_fonts", "n_headings": 45}
+{"event": "section_full_doc_path", "filename": "324603-4962713.pdf", "drug": "STELARA", "outline_size": 45, "text_size": 15594}
+{"event": "tpm_throttle_sleep", "seconds": 59.84, "tokens_in_window": 8800, "would_add": 5766}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:08:51.945+00:00", "duration_sec": 0.749, "est_tokens": 5766, "max_tokens_param": 1024, "prompt_tokens": 4709, "completion_tokens": 182, "total_tokens": 4891, "prompt_chars": 18493, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.75, "tokens_in_window": 5766, "would_add": 6850}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:09:52.451+00:00", "duration_sec": 0.675, "est_tokens": 6850, "max_tokens_param": 2048, "prompt_tokens": 4719, "completion_tokens": 149, "total_tokens": 4868, "prompt_chars": 18732, "system_chars": 477}
+{"event": "pass3_failed_using_rule_fallback", "error": "name 'a' is not defined", "filename": "324603-4962713.pdf", "drug": "STELARA"}
+{"event": "row_warnings", "filename": "324603-4962713.pdf", "drug": "STELARA", "warnings": ["STEP_COUNT_RULE_FALLBACK", "MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "outline_from_fonts", "n_headings": 122}
+{"event": "outline_from_fonts", "n_headings": 122}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:14:44.070+00:00", "duration_sec": 0.997, "est_tokens": 2653, "max_tokens_param": 512, "prompt_tokens": 2745, "completion_tokens": 71, "total_tokens": 2816, "prompt_chars": 8089, "system_chars": 477}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "section_full_doc_path", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "outline_size": 7, "text_size": 15650}
+{"event": "retry_giving_up_non_retryable", "error": "Invalid format specifier"}
+{"event": "row_failed", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "error": "Invalid format specifier"}
+{"event": "outline_from_fonts", "n_headings": 122}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:17:09.022+00:00", "duration_sec": 0.184, "est_tokens": 2653, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99444, Requested 3257. Please try again in 38m53.664s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_ex"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:17:09.206+00:00", "duration_sec": 0.492, "est_tokens": 2653, "max_tokens_param": 512, "prompt_tokens": 2649, "completion_tokens": 102, "total_tokens": 2751, "prompt_chars": 8089, "system_chars": 477}
+{"event": "retry_giving_up_non_retryable", "error": "Invalid format specifier"}
+{"event": "row_failed", "filename": "148593-4960549.pdf", "drug": "STELARA", "error": "Invalid format specifier"}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:18:46.928+00:00", "duration_sec": 0.111, "est_tokens": 4103, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99331, Requested 4138. Please try again in 49m57.216s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_ex"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "tpm_throttle_sleep", "seconds": 60.39, "tokens_in_window": 4103, "would_add": 4103}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:19:47.434+00:00", "duration_sec": 0.193, "est_tokens": 4103, "max_tokens_param": 4096, "prompt_tokens": 17, "completion_tokens": 2, "total_tokens": 19, "prompt_chars": 30, "system_chars": 0}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "section_full_doc_path", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "outline_size": 7, "text_size": 15650}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 5931, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 5931}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:21:08.780+00:00", "duration_sec": 1.219, "est_tokens": 5931, "max_tokens_param": 1024, "prompt_tokens": 5149, "completion_tokens": 318, "total_tokens": 5467, "prompt_chars": 19151, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.28, "tokens_in_window": 5931, "would_add": 7247}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:22:09.285+00:00", "duration_sec": 1.008, "est_tokens": 7247, "max_tokens_param": 2048, "prompt_tokens": 5413, "completion_tokens": 252, "total_tokens": 5665, "prompt_chars": 20319, "system_chars": 477}
+{"event": "pass3_failed_using_rule_fallback", "error": "name 'a' is not defined", "filename": "330109-4880941.pdf", "drug": "TREMFYA"}
+{"event": "row_warnings", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_RULE_FALLBACK"]}
+{"event": "outline_from_fonts", "n_headings": 122}
+{"event": "tpm_throttle_sleep", "seconds": 58.98, "tokens_in_window": 7247, "would_add": 2653}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:23:09.791+00:00", "duration_sec": 0.114, "est_tokens": 2653, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99027, Requested 3257. Please try again in 32m53.376s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_ex"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:23:09.906+00:00", "duration_sec": 0.468, "est_tokens": 2653, "max_tokens_param": 512, "prompt_tokens": 2649, "completion_tokens": 102, "total_tokens": 2751, "prompt_chars": 8089, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.9, "tokens_in_window": 5306, "would_add": 7731}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:24:10.296+00:00", "duration_sec": 0.936, "est_tokens": 7731, "max_tokens_param": 1024, "prompt_tokens": 6801, "completion_tokens": 177, "total_tokens": 6978, "prompt_chars": 26351, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.56, "tokens_in_window": 7731, "would_add": 9047}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:25:10.799+00:00", "duration_sec": 1.363, "est_tokens": 9047, "max_tokens_param": 2048, "prompt_tokens": 7064, "completion_tokens": 258, "total_tokens": 7322, "prompt_chars": 27519, "system_chars": 477}
+{"event": "pass3_failed_using_rule_fallback", "error": "name 'a' is not defined", "filename": "148593-4960549.pdf", "drug": "STELARA"}
+{"event": "row_warnings", "filename": "148593-4960549.pdf", "drug": "STELARA", "warnings": ["STEP_COUNT_RULE_FALLBACK", "MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "section_full_doc_path", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "outline_size": 7, "text_size": 15650}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 5972, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 5972}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:35:56.149+00:00", "duration_sec": 1.129, "est_tokens": 5972, "max_tokens_param": 1024, "prompt_tokens": 5194, "completion_tokens": 319, "total_tokens": 5513, "prompt_chars": 19317, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.37, "tokens_in_window": 5972, "would_add": 7247}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:36:56.655+00:00", "duration_sec": 0.944, "est_tokens": 7247, "max_tokens_param": 2048, "prompt_tokens": 5413, "completion_tokens": 255, "total_tokens": 5668, "prompt_chars": 20319, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.56, "tokens_in_window": 7247, "would_add": 3294}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:37:57.157+00:00", "duration_sec": 0.081, "est_tokens": 3294, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98000, Requested 3473. Please try again in 21m12.672s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_ex"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "tpm_throttle_sleep", "seconds": 60.42, "tokens_in_window": 3294, "would_add": 3294}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:38:57.662+00:00", "duration_sec": 1.695, "est_tokens": 3294, "max_tokens_param": 1500, "prompt_tokens": 1924, "completion_tokens": 522, "total_tokens": 2446, "prompt_chars": 6701, "system_chars": 477}
+{"event": "row_warnings", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm1_rule2", "STEP_COUNT_MINOR_DISAGREE_generic_llm1_rule2"]}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "section_full_doc_path", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "outline_size": 7, "text_size": 15650}
+{"event": "step_anchor_extracted", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "anchor_chars": 5658}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 5972, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 5972}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:47:44.304+00:00", "duration_sec": 1.165, "est_tokens": 5972, "max_tokens_param": 1024, "prompt_tokens": 5194, "completion_tokens": 319, "total_tokens": 5513, "prompt_chars": 19317, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.33, "tokens_in_window": 5972, "would_add": 8760}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:48:44.809+00:00", "duration_sec": 1.295, "est_tokens": 8760, "max_tokens_param": 2048, "prompt_tokens": 6932, "completion_tokens": 379, "total_tokens": 7311, "prompt_chars": 26374, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.2, "tokens_in_window": 8760, "would_add": 3400}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:49:45.315+00:00", "duration_sec": 0.087, "est_tokens": 3400, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 97180, Requested 3590. Please try again in 11m5.28s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exce"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "tpm_throttle_sleep", "seconds": 60.41, "tokens_in_window": 3400, "would_add": 3400}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:50:45.818+00:00", "duration_sec": 1.832, "est_tokens": 3400, "max_tokens_param": 1500, "prompt_tokens": 2037, "completion_tokens": 669, "total_tokens": 2706, "prompt_chars": 7124, "system_chars": 477}
+{"event": "row_warnings", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_MAJOR_DISAGREE_brands_llm3_rule5", "STEP_COUNT_MAJOR_DISAGREE_generic_llm3_rule1"]}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "section_full_doc_path", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "outline_size": 7, "text_size": 15650}
+{"event": "step_anchor_extracted", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "anchor_chars": 5658}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 5972, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 5972}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:54:31.923+00:00", "duration_sec": 1.273, "est_tokens": 5972, "max_tokens_param": 1024, "prompt_tokens": 5194, "completion_tokens": 319, "total_tokens": 5513, "prompt_chars": 19317, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.23, "tokens_in_window": 5972, "would_add": 8760}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:55:32.428+00:00", "duration_sec": 1.538, "est_tokens": 8760, "max_tokens_param": 2048, "prompt_tokens": 6932, "completion_tokens": 362, "total_tokens": 7294, "prompt_chars": 26374, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 58.96, "tokens_in_window": 8760, "would_add": 3891}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:56:32.933+00:00", "duration_sec": 0.078, "est_tokens": 3891, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 96709, Requested 4052. Please try again in 10m57.504s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_ex"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "tpm_throttle_sleep", "seconds": 60.42, "tokens_in_window": 3891, "would_add": 3891}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T11:57:33.438+00:00", "duration_sec": 1.277, "est_tokens": 3891, "max_tokens_param": 1500, "prompt_tokens": 2503, "completion_tokens": 464, "total_tokens": 2967, "prompt_chars": 9088, "system_chars": 477}
+{"event": "row_warnings", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm4_rule5"]}
+{"event": "outline_from_toc", "n_headings": 7}
+{"event": "section_full_doc_path", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "outline_size": 7, "text_size": 15650}
+{"event": "step_anchor_extracted", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "anchor_chars": 5658}
+{"event": "tpm_request_exceeds_budget", "est_tokens": 5972, "tpm_limit": 5500}
+{"event": "tpm_throttle_sleep", "seconds": 60.0, "tokens_in_window": 0, "would_add": 5972}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:33:47.018+00:00", "duration_sec": 1.356, "est_tokens": 5972, "max_tokens_param": 1024, "prompt_tokens": 5194, "completion_tokens": 324, "total_tokens": 5518, "prompt_chars": 19317, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.14, "tokens_in_window": 5972, "would_add": 8760}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:34:47.523+00:00", "duration_sec": 1.405, "est_tokens": 8760, "max_tokens_param": 2048, "prompt_tokens": 6932, "completion_tokens": 378, "total_tokens": 7310, "prompt_chars": 26374, "system_chars": 477}
+{"event": "json_parse_error_first", "error": "Invalid \\escape: line 2 column 232 (char 233)", "raw": "{\n  \"combined_step_text\": \"Documentation for all indications: \\nThe patient is unable to take THREE preferred products, where indicated, for the \\ngiven diagnosis due to a trial and inadequate treatment response or intolerance, or a \\contraindication. Documentation is required for approval. \\nTHREE preferred products: \\n\u2022\\nA preferred ustekinumab product\\n\u2022\\nTWO additional preferred products\\no\\nA preferred adalimumab product OR Enbrel\\no\\nRinvoq\\no\\nOtezla\\n\\nAuthorization of 12 months may be g"}
+{"event": "tpm_throttle_sleep", "seconds": 59.09, "tokens_in_window": 8760, "would_add": 10717}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:35:48.027+00:00", "duration_sec": 0.09, "est_tokens": 10717, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 89816, Requested 11122. Please try again in 13m30.431999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_l"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "tpm_throttle_sleep", "seconds": 60.41, "tokens_in_window": 10717, "would_add": 10717}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:36:48.530+00:00", "duration_sec": 0.801, "est_tokens": 10717, "max_tokens_param": 4096, "prompt_tokens": 6849, "completion_tokens": 172, "total_tokens": 7021, "prompt_chars": 26487, "system_chars": 0}
+{"event": "tpm_throttle_sleep", "seconds": 59.7, "tokens_in_window": 10717, "would_add": 4397}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:37:49.036+00:00", "duration_sec": 1.689, "est_tokens": 4397, "max_tokens_param": 1500, "prompt_tokens": 2991, "completion_tokens": 579, "total_tokens": 3570, "prompt_chars": 11112, "system_chars": 477}
+{"event": "row_warnings", "filename": "330109-4880941.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm3_rule4"]}
+{"event": "outline_from_fonts", "n_headings": 122}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:42:10.410+00:00", "duration_sec": 0.556, "est_tokens": 2653, "max_tokens_param": 512, "prompt_tokens": 2745, "completion_tokens": 71, "total_tokens": 2816, "prompt_chars": 8089, "system_chars": 477}
+{"event": "step_anchor_extracted", "filename": "148593-4960549.pdf", "drug": "STELARA", "anchor_chars": 5720}
+{"event": "tpm_throttle_sleep", "seconds": 59.92, "tokens_in_window": 2653, "would_add": 7240}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:43:10.920+00:00", "duration_sec": 1.234, "est_tokens": 7240, "max_tokens_param": 1024, "prompt_tokens": 6221, "completion_tokens": 177, "total_tokens": 6398, "prompt_chars": 24390, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.26, "tokens_in_window": 7240, "would_add": 10044}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:44:11.425+00:00", "duration_sec": 1.201, "est_tokens": 10044, "max_tokens_param": 2048, "prompt_tokens": 7929, "completion_tokens": 240, "total_tokens": 8169, "prompt_chars": 31509, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.3, "tokens_in_window": 10044, "would_add": 4481}
+{"event": "llm_call", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:45:11.926+00:00", "duration_sec": 1.687, "est_tokens": 4481, "max_tokens_param": 1500, "prompt_tokens": 3159, "completion_tokens": 325, "total_tokens": 3484, "prompt_chars": 11448, "system_chars": 477}
+{"event": "row_warnings", "filename": "148593-4960549.pdf", "drug": "STELARA", "warnings": ["STEP_COUNT_MAJOR_DISAGREE_brands_llm1_rule6", "STEP_COUNT_MINOR_DISAGREE_generic_llm1_rule2", "MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "outline_from_fonts", "n_headings": 50}
+{"event": "section_full_doc_path", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "outline_size": 50, "text_size": 41024}
+{"event": "step_anchor_extracted", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "anchor_chars": 4426}
+{"event": "context_truncated_for_tpm", "drug": "TREMFYA", "from_chars": 41024, "to_chars": 30000, "drug_hits_total": 121, "drug_hits_kept": 103, "slice_start": 8039, "slice_end": 38039}
+{"event": "tpm_throttle_sleep", "seconds": 58.63, "tokens_in_window": 4481, "would_add": 9591}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:46:12.432+00:00", "duration_sec": 0.951, "est_tokens": 9591, "max_tokens_param": 1024, "prompt_tokens": 8779, "completion_tokens": 71, "total_tokens": 8850, "prompt_chars": 33793, "system_chars": 477}
+{"event": "context_truncated_for_tpm", "drug": "TREMFYA", "from_chars": 41024, "to_chars": 24574, "drug_hits_total": 121, "drug_hits_kept": 97, "slice_start": 13546, "slice_end": 38120}
+{"event": "tpm_throttle_sleep", "seconds": 59.54, "tokens_in_window": 9591, "would_add": 10715}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:47:12.934+00:00", "duration_sec": 1.156, "est_tokens": 10715, "max_tokens_param": 2048, "prompt_tokens": 8588, "completion_tokens": 247, "total_tokens": 8835, "prompt_chars": 34192, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.34, "tokens_in_window": 10715, "would_add": 4446}
+{"event": "llm_call_failed", "kind": "text", "model": "llama-3.3-70b-versatile", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:48:13.440+00:00", "duration_sec": 0.122, "est_tokens": 4446, "classified_as": "tpd", "error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01ksvy7ebdep3asgwd2c5e1vn4` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 97267, Requested 4624. Please try again in 27m13.824s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_ex"}
+{"event": "combo_exhausted", "key_idx": 0, "model": "llama-3.3-70b-versatile", "reason": "tpd"}
+{"event": "tpm_throttle_sleep", "seconds": 60.38, "tokens_in_window": 4446, "would_add": 4446}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:49:13.943+00:00", "duration_sec": 1.894, "est_tokens": 4446, "max_tokens_param": 1500, "prompt_tokens": 3062, "completion_tokens": 692, "total_tokens": 3754, "prompt_chars": 11309, "system_chars": 477}
+{"event": "row_warnings", "filename": "305252-5002815.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm1_rule2", "STEP_COUNT_MINOR_DISAGREE_generic_llm1_rule2", "MULTI_BRAND_AMBIGUOUS_age"]}
+{"event": "outline_from_fonts", "n_headings": 32}
+{"event": "section_full_doc_path", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "outline_size": 32, "text_size": 13404}
+{"event": "step_anchor_extracted", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "anchor_chars": 2956}
+{"event": "tpm_throttle_sleep", "seconds": 58.54, "tokens_in_window": 4446, "would_add": 5405}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:50:14.448+00:00", "duration_sec": 0.968, "est_tokens": 5405, "max_tokens_param": 1024, "prompt_tokens": 4183, "completion_tokens": 175, "total_tokens": 4358, "prompt_chars": 17050, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.53, "tokens_in_window": 5405, "would_add": 7518}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:51:14.950+00:00", "duration_sec": 1.03, "est_tokens": 7518, "max_tokens_param": 2048, "prompt_tokens": 5190, "completion_tokens": 258, "total_tokens": 5448, "prompt_chars": 21405, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.47, "tokens_in_window": 7518, "would_add": 4464}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:52:15.453+00:00", "duration_sec": 1.375, "est_tokens": 4464, "max_tokens_param": 1500, "prompt_tokens": 3065, "completion_tokens": 490, "total_tokens": 3555, "prompt_chars": 11380, "system_chars": 477}
+{"event": "rerun", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "rerun_count": 1, "critical_failures": ["step_count_extraction_failed"]}
+{"event": "section_full_doc_path", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "outline_size": 32, "text_size": 13404}
+{"event": "step_anchor_extracted", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "anchor_chars": 2956}
+{"event": "tpm_throttle_sleep", "seconds": 59.11, "tokens_in_window": 4464, "would_add": 5405}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:53:15.958+00:00", "duration_sec": 0.874, "est_tokens": 5405, "max_tokens_param": 1024, "prompt_tokens": 4183, "completion_tokens": 175, "total_tokens": 4358, "prompt_chars": 17050, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.63, "tokens_in_window": 5405, "would_add": 7518}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:54:16.462+00:00", "duration_sec": 1.068, "est_tokens": 7518, "max_tokens_param": 2048, "prompt_tokens": 5190, "completion_tokens": 249, "total_tokens": 5439, "prompt_chars": 21405, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.43, "tokens_in_window": 7518, "would_add": 4462}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:55:16.967+00:00", "duration_sec": 1.799, "est_tokens": 4462, "max_tokens_param": 1500, "prompt_tokens": 3060, "completion_tokens": 648, "total_tokens": 3708, "prompt_chars": 11371, "system_chars": 477}
+{"event": "row_warnings", "filename": "176207-4867884.pdf", "drug": "TREMFYA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm1_rule2"]}
+{"event": "outline_from_fonts", "n_headings": 45}
+{"event": "section_full_doc_path", "filename": "324603-4962713.pdf", "drug": "STELARA", "outline_size": 45, "text_size": 15594}
+{"event": "step_anchor_extracted", "filename": "324603-4962713.pdf", "drug": "STELARA", "anchor_chars": 3070}
+{"event": "tpm_throttle_sleep", "seconds": 58.63, "tokens_in_window": 4462, "would_add": 5965}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:56:17.468+00:00", "duration_sec": 0.757, "est_tokens": 5965, "max_tokens_param": 1024, "prompt_tokens": 4928, "completion_tokens": 181, "total_tokens": 5109, "prompt_chars": 19287, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.74, "tokens_in_window": 5965, "would_add": 8106}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:57:17.972+00:00", "duration_sec": 1.026, "est_tokens": 8106, "max_tokens_param": 2048, "prompt_tokens": 5925, "completion_tokens": 269, "total_tokens": 6194, "prompt_chars": 23756, "system_chars": 477}
+{"event": "tpm_throttle_sleep", "seconds": 59.47, "tokens_in_window": 8106, "would_add": 4472}
+{"event": "llm_call", "kind": "text", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "key_idx": 0, "attempt": 0, "started_at": "2026-05-30T13:58:54.462+00:00", "duration_sec": 1.857, "est_tokens": 4472, "max_tokens_param": 1500, "prompt_tokens": 3076, "completion_tokens": 698, "total_tokens": 3774, "prompt_chars": 11414, "system_chars": 477}
+{"event": "row_warnings", "filename": "324603-4962713.pdf", "drug": "STELARA", "warnings": ["STEP_COUNT_MINOR_DISAGREE_brands_llm1_rule2", "MULTI_BRAND_AMBIGUOUS_age"]}
