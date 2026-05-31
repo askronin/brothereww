@@ -12,7 +12,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2024-01-26",
     "inn": "ACITRETIN",
-    "pharm_class": "Retinoid [EPC]"
+    "pharm_class": "Retinoid [EPC]",
+    "source": "openfda"
   },
   "AMJEVITA": {
     "brand_name": "AMJEVITA",
@@ -27,7 +28,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2026-03-10",
     "inn": "ADALIMUMAB-ATTO",
-    "pharm_class": "Tumor Necrosis Factor Blocker [EPC]"
+    "pharm_class": "Tumor Necrosis Factor Blocker [EPC]",
+    "source": "openfda"
   },
   "BIMZELX": {
     "brand_name": "BIMZELX",
@@ -42,7 +44,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2025-06-16",
     "inn": "BIMEKIZUMAB",
-    "pharm_class": null
+    "pharm_class": null,
+    "source": "openfda"
   },
   "CIMZIA": {
     "brand_name": "CIMZIA",
@@ -57,7 +60,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2026-02-24",
     "inn": "CERTOLIZUMAB PEGOL",
-    "pharm_class": "Tumor Necrosis Factor Blocker [EPC]"
+    "pharm_class": "Tumor Necrosis Factor Blocker [EPC]",
+    "source": "openfda"
   },
   "COSENTYX": {
     "brand_name": "COSENTYX",
@@ -72,7 +76,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2026-04-17",
     "inn": "SECUKINUMAB",
-    "pharm_class": "Interleukin-17A Antagonist [EPC]"
+    "pharm_class": "Interleukin-17A Antagonist [EPC]",
+    "source": "openfda"
   },
   "ENBREL": {
     "brand_name": "ENBREL",
@@ -87,7 +92,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2026-05-11",
     "inn": "ETANERCEPT",
-    "pharm_class": "Tumor Necrosis Factor Blocker [EPC]"
+    "pharm_class": "Tumor Necrosis Factor Blocker [EPC]",
+    "source": "openfda"
   },
   "ILUMYA": {
     "brand_name": "ILUMYA",
@@ -102,7 +108,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2025-12-25",
     "inn": "TILDRAKIZUMAB-ASMN",
-    "pharm_class": "Interleukin-23 Antagonist [EPC]"
+    "pharm_class": "Interleukin-23 Antagonist [EPC]",
+    "source": "openfda"
   },
   "OTEZLA": {
     "brand_name": "OTEZLA",
@@ -117,7 +124,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2025-12-23",
     "inn": "APREMILAST",
-    "pharm_class": "Phosphodiesterase 4 Inhibitor [EPC]"
+    "pharm_class": "Phosphodiesterase 4 Inhibitor [EPC]",
+    "source": "openfda"
   },
   "OTULFI": {
     "brand_name": "OTULFI",
@@ -132,7 +140,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2026-02-16",
     "inn": "USTEKINUMAB-AAUZ",
-    "pharm_class": "Interleukin-12 Antagonist [EPC]"
+    "pharm_class": "Interleukin-12 Antagonist [EPC]",
+    "source": "openfda"
   },
   "REMICADE": {
     "brand_name": "REMICADE",
@@ -147,7 +156,24 @@
     "specialist_restriction": null,
     "label_effective_date": "2025-06-03",
     "inn": "INFLIXIMAB",
-    "pharm_class": "Tumor Necrosis Factor Blocker [EPC]"
+    "pharm_class": "Tumor Necrosis Factor Blocker [EPC]",
+    "source": "openfda"
+  },
+  "SILIQ": {
+    "brand_name": "SILIQ",
+    "min_age": 18,
+    "min_weight_kg": null,
+    "indication_severity": "moderate-to-severe",
+    "brand_steps": 0,
+    "generic_steps": 0,
+    "phototherapy_required": false,
+    "tb_test_required_as_pa_gate": false,
+    "tb_evaluation_recommended": true,
+    "specialist_restriction": null,
+    "label_effective_date": "2026-05-20",
+    "inn": "BRODALUMAB",
+    "pharm_class": "Interleukin-17 Receptor A Antagonist [EPC]",
+    "source": "dailymed"
   },
   "SKYRIZI": {
     "brand_name": "SKYRIZI",
@@ -162,7 +188,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2026-03-19",
     "inn": "RISANKIZUMAB-RZAA",
-    "pharm_class": "Interleukin-23 Antagonist [EPC]"
+    "pharm_class": "Interleukin-23 Antagonist [EPC]",
+    "source": "openfda"
   },
   "STELARA": {
     "brand_name": "STELARA",
@@ -177,7 +204,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2026-04-22",
     "inn": "USTEKINUMAB",
-    "pharm_class": "Interleukin-12 Antagonist [EPC]"
+    "pharm_class": "Interleukin-12 Antagonist [EPC]",
+    "source": "openfda"
   },
   "TREMFYA": {
     "brand_name": "TREMFYA",
@@ -192,7 +220,8 @@
     "specialist_restriction": null,
     "label_effective_date": "2025-09-29",
     "inn": "GUSELKUMAB",
-    "pharm_class": "Interleukin-23 Antagonist [EPC]"
+    "pharm_class": "Interleukin-23 Antagonist [EPC]",
+    "source": "openfda"
   },
   "YESINTEK": {
     "brand_name": "YESINTEK",
@@ -207,6 +236,7 @@
     "specialist_restriction": null,
     "label_effective_date": "2025-12-09",
     "inn": "USTEKINUMAB",
-    "pharm_class": "Interleukin-12 Antagonist [EPC]"
+    "pharm_class": "Interleukin-12 Antagonist [EPC]",
+    "source": "openfda"
   }
 }

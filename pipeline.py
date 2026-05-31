@@ -218,7 +218,24 @@ MAX_REQUEST_TOKENS = 90_000
 # Determinism: hash N identical prompts at startup to detect serving drift.
 DETERMINISM_TEST_RUNS = 3
 
-# ── Drug classification — loaded from XLSX at startup ─────────────
+# ── Drug classification — hardcoded for submission portability ────
+#
+# Mirror of the "PsO Brands- For Ground Truth" sheet from the dev workbook.
+# Hardcoded so the pipeline can run against submission environments that
+# only ship the Submissions sheet + a PDF folder. load_drug_classifications()
+# uses this list as the primary source; if the XLSX has an updated sheet
+# during dev, that takes precedence.
+#
+# Last synced from PA_Business_Rules.xlsx on 2026-05-31 (35 entries).
+PSO_MARKET_BASKET = (
+    "Acitretin", "Amjevita", "Avsola", "Bimzelx", "Cimzia", "Cosentyx",
+    "Cyclosporine", "Cyltezo", "Enbrel", "Humira", "Hyrimoz", "Idacio",
+    "Ilumya", "Inflectra", "Hulio", "Methotrexate", "Otezla", "Otulfi",
+    "Psychiva / Quallent", "Remicade", "Renflexis", "Selarsdi", "Siliq",
+    "Skyrizi", "Sotyktu", "Stelara", "Steqeyma", "Taltz", "Tremfya",
+    "Vtama", "Wezlana", "Yesintek", "Yuflyma", "Yusimry", "Zoryve",
+)
+
 # Generic conventionals that appear in the PsO market basket tab.
 KNOWN_GENERICS_IN_MARKET_BASKET = {
     "acitretin", "cyclosporine", "methotrexate", "vtama", "zoryve",
@@ -280,32 +297,56 @@ def log_debug(entry: dict) -> None:
 # BLOCK 9 (Phase 1) — Drug classification + submissions loaders
 # ─────────────────────────────────────────────────────────────────
 
-def load_drug_classifications(xlsx_path: Path) -> tuple[set, set]:
+def load_drug_classifications(xlsx_path: Optional[Path] = None) -> tuple[set, set]:
     """
-    Load branded vs generic drug classification from the XLSX.
+    Load branded vs generic drug classification.
 
-    Reads the "PsO Brands- For Ground Truth" tab — drugs in the tab minus
-    KNOWN_GENERICS_IN_MARKET_BASKET = branded. INN aliases are added to the
-    branded set for policy-text matching. JAK-inhibitor targeted synthetics
-    that don't appear in the tab are added explicitly.
+    Primary source: hardcoded PSO_MARKET_BASKET (35 entries, mirrors the
+    "PsO Brands- For Ground Truth" sheet). Submission environments that
+    only ship Submissions + PDFs work without any external sheet.
+
+    Optional override: if xlsx_path is provided AND has the "PsO Brands-
+    For Ground Truth" sheet, that sheet's contents REPLACE the hardcoded
+    list. Lets dev iterate on the basket without code changes.
+
+    In both cases: KNOWN_GENERICS_IN_MARKET_BASKET split into the generic
+    set, the rest into branded. INN aliases + targeted-synthetic JAK
+    inhibitors added explicitly.
 
     Returns (branded_set, generic_set), both lowercase.
     """
-    try:
-        df = pd.read_excel(
-            xlsx_path,
-            sheet_name="PsO Brands- For Ground Truth",
-            header=0,
-        )
-        all_drugs = {
-            str(v).lower().strip()
-            for v in df.iloc[:, 0]
-            if str(v).lower().strip() not in ("nan", "", "none")
-        }
-    except Exception as e:
-        log_debug({"event": "drug_classification_load_failed",
-                   "error": str(e)})
-        all_drugs = set()
+    # Start with the hardcoded list (always available, never raises).
+    all_drugs = {d.lower().strip() for d in PSO_MARKET_BASKET}
+    source = "hardcoded"
+
+    # If an XLSX with the sheet exists, override.
+    if xlsx_path is not None and xlsx_path.exists() and xlsx_path.suffix.lower() in (".xlsx", ".xls"):
+        try:
+            df = pd.read_excel(
+                xlsx_path,
+                sheet_name="PsO Brands- For Ground Truth",
+                header=0,
+            )
+            xlsx_drugs = {
+                str(v).lower().strip()
+                for v in df.iloc[:, 0]
+                if str(v).lower().strip() not in ("nan", "", "none")
+            }
+            if xlsx_drugs:
+                all_drugs = xlsx_drugs
+                source = "xlsx_override"
+        except Exception as e:
+            log_debug({
+                "event": "drug_classification_xlsx_sheet_missing",
+                "note": "falling back to hardcoded PSO_MARKET_BASKET",
+                "error": str(e),
+            })
+
+    log_debug({
+        "event": "drug_classification_loaded",
+        "source": source,
+        "n_drugs": len(all_drugs),
+    })
 
     generic_set = {d for d in all_drugs if d in KNOWN_GENERICS_IN_MARKET_BASKET}
     branded_set = all_drugs - generic_set
@@ -2307,6 +2348,94 @@ CLASSIFICATION REFERENCE:
   conventional step ("must try one conventional systemic").
 - Phototherapy: phototherapy, UVB, PUVA, narrowband UVB, light therapy.
 
+═══════════════════════════════════════════════════════════════════════
+DECISION TREE — APPLY THIS FIRST, BEFORE ANYTHING ELSE
+═══════════════════════════════════════════════════════════════════════
+
+Step ① — Does the policy have a UNIVERSAL MULTI-BRAND GATE?
+  Examples of universal multi-brand gates:
+    - "must have failed THREE preferred products: A, B, C"
+    - "contraindication, intolerance or ineffective response to all of:
+       Ilumya, Stelara, Avsola, Inflectra, Renflexis"
+    - "must try and fail two preferred biologics"
+
+  ── YES, universal gate exists:
+       brand_count = STATED NUMBER from the gate.
+       Apply TARGET DRUG EXCLUSION: if {drug} is in the listed brands,
+       subtract it (you cannot require failure of {drug} as a step
+       for {drug} itself).
+       DO NOT add Path A "previously received biologic" on top of the
+       universal count — the universal already requires biologic failures,
+       so Path A is REDUNDANT (already counted in universal).
+       Proceed to Step ③ for the generic / phototherapy count.
+
+  ── NO universal multi-brand gate → proceed to Step ②.
+
+Step ② — Connector between Path A and Path B in the indication block:
+  Path A is typically "previously received a biologic or targeted synthetic
+  drug (e.g., Sotyktu, Otezla)" — a history-style sentence.
+  Path B is typically "for treatment when ANY of the following criteria is
+  met: ..." — a criteria-and-step-therapy section.
+
+  ── EXPLICIT OR connector ("; or", "or:", " OR ", numbered "1. X; or 2. Y"):
+       Path A is HISTORY CHECK only → brand_count = 0 from Path A.
+       Only Path B's standard step path contributes (see Step ③).
+
+  ── IMPLICIT (no explicit OR — paragraphs separated only by newlines,
+     or two consecutive "Authorization may be granted" sentences with no
+     connector word):
+       Path A counts as 1 brand step (the biologic requirement).
+       Add Path B's standard step path (Step ③).
+
+Step ③ — Path B's STANDARD step path (the one that actually contributes
+generic / phototherapy counts):
+  Path B is typically "for treatment when ANY of: (a) crucial body areas;
+  (b) 10% BSA; (c) 3% BSA + (inadequate response to phototherapy OR
+  methotrexate/cyclosporine/acitretin; or clinical reason to avoid)".
+  Sub-bullets (a) and (b) are clinical-severity criteria → 0 steps.
+  Sub-bullet (c) has the actual step requirement:
+    "(inadequate response to phototherapy OR MTX/CYC/ACI; or clinical
+     reason to avoid)" is ONE OR-cluster → counts as 1 GENERIC step.
+  → Generic count from Path B = 1 step.
+  → Phototherapy is INSIDE the OR-cluster (one of the alternatives) →
+    Phototherapy = "No" (it's only an OR alternative, not mandatory).
+
+═══════════════════════════════════════════════════════════════════════
+EXPECTED OUTPUTS FOR THE 5 CANONICAL AETNA-FAMILY PATTERNS
+═══════════════════════════════════════════════════════════════════════
+
+PATTERN 1 — Universal "THREE preferred products" + indication block (Row 1):
+  → Step ①: universal exists, stated count = 3 → brand_count = 3.
+  → Path A is REDUNDANT (subsumed by universal). Generic from Path B = 1.
+  → branded=3, generic=1, phototherapy=No.
+
+PATTERN 2 — Universal "contraindication to all of [list including {drug}]"
+            + indication block (Row 2-style for target=STELARA):
+  → Step ①: universal exists, listed brands = [Ilumya, Stelara, Avsola/
+    Inflectra/Renflexis cluster]. After excluding target {drug}=STELARA:
+    [Ilumya, Avsola/Inflectra/Renflexis cluster] = 2 brand steps.
+  → Path A REDUNDANT. Generic from Path B = 1.
+  → branded=2, generic=1, phototherapy=No.
+
+PATTERN 3 — No universal + EXPLICIT OR between Path A and Path B (Row 3):
+  → Step ①: no universal.
+  → Step ②: explicit "; or" → Path A is history check = 0 brand.
+  → Generic from Path B = 1.
+  → branded=NA (0), generic=1, phototherapy=No.
+
+PATTERN 4 — No universal + IMPLICIT (Path A and Path B separated only by
+            newlines, no explicit OR connector) (Rows 4 and 5):
+  → Step ①: no universal.
+  → Step ②: implicit → Path A = 1 brand step (biologic).
+  → Generic from Path B = 1.
+  → branded=1, generic=1, phototherapy=No.
+
+═══════════════════════════════════════════════════════════════════════
+
+The decision tree above OVERRIDES anything in the worked examples below.
+Use the worked examples only when the input policy doesn't fit any of the
+4 canonical patterns above.
+
 WORKED EXAMPLES (anchor your reasoning on these):
 
 Example 1 — Oregon-Medicaid-style (all-AND chain):
@@ -2438,97 +2567,103 @@ WORKED EXAMPLE 5 — Aetna-Tremfya canonical pattern (full doc structure):
   (Phototherapy = No because photo appears only inside the OR-cluster we
    resolved to the methotrexate alternative.)
 
-WORKED EXAMPLE 6 — Zero-step OR carve-out (CONDITIONALLY applied):
-  Some policies offer a no-trial-required escape path inside the indication
-  block via phrases like:
-    - "clinical reason to avoid pharmacologic treatment with [drugs]"
-    - "contraindication to [drugs]"
-    - "unable to receive [class] due to medical contraindication"
-  Patient just needs documentation, not an actual trial. ZERO prior trials.
+WORKED EXAMPLE 6 — Path A "history check" vs Path B "step path":
+  Aetna-style policies commonly have an indication block with two paths:
+    Path A: "previously received a biologic or targeted synthetic drug"
+            (a HISTORY CHECK — confirming patient already took a biologic)
+    Path B: "for treatment when ANY of: crucial body / 10% BSA /
+            3% BSA + (inadequate response to MTX/CYC/ACI; or clinical reason
+            to avoid)"
+            (CRITERIA + STEP THERAPY — the actual qualification gate)
 
-  But this rule is CONDITIONAL — applies ONLY when ALL of the following hold:
-    (C1) Policy has NO universal step-therapy gate OUTSIDE the indication
-         block. Examples of universal gates that DISABLE this rule:
-           - "THREE preferred products" / "TWO preferred biologics" lists
-           - "contraindication/intolerance to all of [Ilumya, Stelara, ...]"
-           - "must have failed all available equivalent alternatives"
-         If any such universal gate exists, the universal count stays AND the
-         indication block contributes its TYPICAL step count (the MTX/CYC/ACI
-         or "previously received biologic" path), NOT the zero-step carve-out.
-    (C2) Within the indication block, Path A and Path B are EXPLICITLY
-         OR-connected. Look for explicit "; or", "or:", " OR " between the
-         sentences. If the two paths are just separate sentences with no
-         explicit OR connector (e.g. two consecutive "Authorization may be
-         granted ..." sentences with only newlines between them), treat them
-         as IMPLICIT AND (both required) — do NOT apply the carve-out
-         preferentially.
-    (C3) The carve-out is clearly a permissive provision (says "clinical
-         reason", "contraindication", "intolerance", or "unable to receive"
-         in a tone that documents avoidance, not a forced step).
+  How to count steps:
+    Path B always contributes its STANDARD step path → 1 generic step
+    (the 3% BSA + MTX/CYC/ACI OR-cluster). The "clinical reason to avoid"
+    sub-clause is an OR alternative WITHIN the cluster — it doesn't change
+    the count; the cluster is still 1 step.
 
-  WHEN ALL THREE CONDITIONS HOLD — apply carve-out resolution:
-    Policy: "1. previously received a biologic; or
-             2. for treatment when ANY of:
-                 (i) 3% BSA + inadequate response to MTX/CYC/ACI
-                 (ii) clinical reason to avoid MTX/CYC/ACI"
-    → Path A vs Path B is explicit OR (C2 ✓)
-    → No universal gate (C1 ✓)
-    → Sub-path (ii) is clearly permissive (C3 ✓)
-    → Least restrictive = sub-path (ii) = 0 steps → final counts NA NA NA.
+  Path A's contribution depends on the connector between Path A and Path B:
+    EXPLICIT OR connector ("; or", "or:", " OR ", numbered "1. ... ; or 2. ..."):
+      → Path A is a HISTORY CHECK only — count 0 brand steps from it.
+      → Only Path B's standard path counts.
+      → Result: Brands=NA (or 0), Generic=1, Photo=No.
 
-  WHEN ANY CONDITION FAILS — DO NOT apply carve-out preferentially:
-    Row-1-style (C1 fails — has universal gate):
-      Universal "THREE preferred products" requires 3 brands AND indication
-      → Brands=3 from universal (always required)
-      → Indication block contributes typical count: pick 3% BSA + MTX/CYC/ACI
-         OR-cluster sub-path = 1 generic step (the STANDARD path, NOT the
-         carve-out). The carve-out exists as documentation alternative but
-         we do NOT preferentially pick it when other paths are clear.
-      → Final: Brands=3, Generic=1, Phototherapy=No.
+    IMPLICIT (no explicit OR — paragraphs separated only by newlines, or
+    just listed sequentially as "Authorization may be granted... Authorization
+    may be granted ..."):
+      → Path A counts as 1 brand step (the biologic requirement).
+      → Path B's standard path adds 1 generic step.
+      → Result: Brands=1, Generic=1, Photo=No.
 
-    Row-2-style (C1 fails — has multi-brand contraindication gate):
-      "Contraindication/intolerance to all of: Ilumya, Stelara, Avsola/Inflectra/
-       Renflexis" + indication block with carve-out
-      → 1 branded step from Path A "previously received a biologic"
-      → 1 generic step from Path B 3% BSA + MTX/CYC/ACI cluster
-      → Final: Brands=1, Generic=1, Photo=No.
+  WORKED EXAMPLE — Aetna explicit-OR (Row 3 pattern):
+    Policy text: "1. Plaque psoriasis (PsO)
+                   1. For adult members who have previously received a
+                      biologic or targeted synthetic drug; or
+                   2. For adult members for treatment of moderate-to-severe
+                      plaque psoriasis when any of the following criteria
+                      is met: ..."
+    The numbered "1. ...; or 2. ..." structure is EXPLICIT OR.
+    → Path A is history-only (0 brand).
+    → Path B standard path = 3% BSA + MTX/CYC/ACI cluster = 1 generic.
+    → Counts: branded=NA, generic=1, phototherapy=No.
 
-    Row-5-style (C2 fails — implicit AND between two "Authorization may be
-       granted" sentences with only newline separator, no explicit OR):
-      "Authorization may be granted for members who have previously received
-       a biologic.
+  WORKED EXAMPLE — Aetna implicit (Row 5 pattern):
+    Policy text: "Authorization of 12 months may be granted for members 6
+                   years of age and older who have previously received a
+                   biologic or targeted synthetic drug.
 
-       Authorization may be granted for members for treatment when any of:
-         3% BSA + (inadequate OR clinical reason to avoid)"
-      → No explicit OR between sentences → treat as AND (both required)
-      → Path A: 1 branded step (biologic)
-      → Path B: pick MTX/CYC/ACI OR-cluster = 1 generic step (standard path)
-      → Final: Brands=1, Generic=1, Photo=No.
+                   Authorization of 12 months may be granted for members 6
+                   years of age and older for treatment of moderate to severe
+                   plaque psoriasis when any of the following criteria is
+                   met: ..."
+    No explicit "or" between the two "Authorization may be granted" sentences.
+    Treat as additive.
+    → Path A: 1 brand step (biologic).
+    → Path B standard: 1 generic step.
+    → Counts: branded=1, generic=1, phototherapy=No.
 
-  CRITICAL: Default to the STANDARD interpretation (typical step path),
-  not the carve-out. Only escalate to the carve-out interpretation when
-  ALL THREE conditions C1+C2+C3 are clearly satisfied.
+  CRITICAL: The "clinical reason to avoid" / "contraindication to" carve-outs
+  inside Path B's 3% BSA sub-bullet do NOT change the step count. They are
+  one OR alternative within the OR-cluster (which is already counted as 1
+  step). The cluster stays = 1 generic step regardless.
+
+WORKED EXAMPLE 7 — TARGET DRUG EXCLUSION in universal gates:
+  When a universal/multi-brand gate explicitly LISTS specific brand names
+  that the patient must have failed, and the TARGET drug ({drug}) appears
+  in that list, the target drug requirement does NOT count as a step
+  (you cannot require failure of the target drug as a step for itself).
+
+  Example policy text (Row 2 / 148593 STELARA pattern):
+    "Member has a contraindication, intolerance or ineffective response to
+     all of the following available equivalent alternative targeted immune
+     modulators: both Ilumya, Stelara, and either Avsola, Inflectra, or
+     Renflexis."
+    For target={drug}=STELARA, EXCLUDE Stelara from the count:
+      Listed brand groups: [Ilumya, Stelara, (Avsola OR Inflectra OR Renflexis)]
+      After target exclusion: [Ilumya, (Avsola OR Inflectra OR Renflexis)]
+      → 2 brand steps (Ilumya = 1, OR-cluster = 1).
+
+    Then add the indication block's standard step path → 1 generic step.
+    → Final: branded=2, generic=1, phototherapy=No.
+
+  KEY RULE: ALWAYS check if the target drug appears in the listed brand
+  names. If YES, subtract it from the step count.
+  (For target=TREMFYA, the same gate would NOT exclude any of Ilumya/Stelara/
+  Avsola/Inflectra/Renflexis since TREMFYA itself isn't in the list →
+  count would be 3 brand steps from the gate.)
 
 OUTPUT RULES:
 - "Humira OR Enbrel" = 1 branded step (OR within a step is not a path choice)
-- "Previously received a biologic or targeted synthetic" = 1 branded step
-  WHEN it is the ONLY step gate. If it appears AFTER a universal gate that
-  states an explicit count ("THREE preferred products"), apply the ANCHOR
-  RULE — do NOT add it on top of the universal count, and use the OR-tie-
-  breaker if it is one of multiple indication-level OR paths.
+- "Previously received a biologic or targeted synthetic" — counts depend on
+  Path A/Path B connector (see Worked Example 6):
+    explicit OR connector with Path B → 0 brand step (history check only)
+    implicit (no explicit OR) → 1 brand step (additive with Path B)
 - "methotrexate, cyclosporine, or acitretin" presented as alternatives within
-  one criterion = 1 generic step (one OR-cluster)
-- ZERO-STEP CARVE-OUT recognition (per Worked Example 6, CONDITIONALLY):
-    "clinical reason to avoid X", "contraindication to X", "intolerance to
-    all of X" → recognize as a permissive ZERO-step provision.
-    BUT only apply this in OR-resolution when ALL of:
-      (C1) No universal step-therapy gate outside the indication block
-      (C2) EXPLICIT OR connector between Path A and Path B
-      (C3) Carve-out wording is clearly permissive
-    Otherwise → DEFAULT to the standard step path (typically the
-    MTX/CYC/ACI cluster = 1 generic step or the named "biologic" = 1 brand).
-    The carve-out is just one OR alternative; do NOT preferentially pick
-    it when standard paths are clearly available.
+  one criterion = 1 generic step (one OR-cluster). The carve-out
+  "clinical reason to avoid {{mtx, cyc, aci}}" inside the same cluster does
+  NOT change the count — the cluster is still 1 step.
+- TARGET DRUG EXCLUSION (Worked Example 7): if the target drug ({drug}) is
+  listed in a multi-brand universal gate, subtract it from the count.
 - Unnamed step ("must try a conventional") defaults to generic
 - 0 branded → output "NA" (not "0")
 - 0 generic → output "NA" (not "0")
@@ -3135,15 +3270,9 @@ FDA_BASELINE_CACHE_PATH = Path(
 FDA_BASELINE: dict = {}  # populated by load_all_fda_baselines() at startup
 
 
-def fetch_fda_baseline(brand_name: str) -> Optional[dict]:
-    """Fetch FDA label for a brand from openFDA. Returns parsed baseline
-    dict or None on any failure (missing, network, malformed).
-
-    Handles three failure modes observed in raw API:
-      1. HTTP error / network timeout
-      2. Response body has top-level 'error' key (e.g. SILIQ: NOT_FOUND)
-      3. meta.results.total == 0 (no matches)
-    """
+def _fetch_openfda_baseline(brand_name: str) -> Optional[dict]:
+    """Try openFDA first. Returns parsed baseline dict tagged with
+    source='openfda', or None on any failure mode (missing/network/error)."""
     try:
         import urllib.parse
         import urllib.request
@@ -3161,20 +3290,220 @@ def fetch_fda_baseline(brand_name: str) -> Optional[dict]:
             log_debug({
                 "event": "fda_api_no_result",
                 "drug": brand_name,
+                "source": "openfda",
                 "error_code": data["error"].get("code"),
                 "error_message": data["error"].get("message"),
             })
             return None
 
         if data.get("meta", {}).get("results", {}).get("total", 0) == 0:
-            log_debug({"event": "fda_api_no_result", "drug": brand_name})
+            log_debug({"event": "fda_api_no_result", "drug": brand_name, "source": "openfda"})
             return None
 
-        return parse_fda_label(data["results"][0], brand_name)
+        result = parse_fda_label(data["results"][0], brand_name)
+        result["source"] = "openfda"
+        return result
 
     except Exception as e:
-        log_debug({"event": "fda_api_error", "drug": brand_name, "error": str(e)})
+        log_debug({"event": "fda_api_error", "drug": brand_name, "source": "openfda", "error": str(e)})
         return None
+
+
+# DailyMed API — NIH public service, used as fallback when openFDA has no
+# label for a brand (e.g. SILIQ as of 2026-05). Two-step protocol:
+#   1. Search by drug_name → JSON list of (setid, title, spl_version)
+#   2. Fetch SPL XML by setid → parse INDICATIONS / DESCRIPTION / effectiveTime
+# Output is mapped to the same openFDA-shaped dict that parse_fda_label()
+# consumes, so the rest of the access-score pipeline is identical.
+DAILYMED_SEARCH_BASE = "https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json"
+DAILYMED_SPL_BASE = "https://dailymed.nlm.nih.gov/dailymed/services/v2/spls"
+_DAILYMED_NS = "{urn:hl7-org:v3}"
+
+# LOINC section codes we care about in DailyMed SPL XML.
+_LOINC_INDICATIONS = "34067-9"   # 1 INDICATIONS AND USAGE
+_LOINC_DESCRIPTION = "34089-3"   # 11 DESCRIPTION (used for pharm_class hint)
+
+
+def _extract_pharm_class_from_description(desc_text: str) -> Optional[str]:
+    """Pull a pharm-class-like string from the DESCRIPTION/INDICATIONS text.
+    Looks for the canonical '... interleukin-X [receptor Y] antagonist'
+    phrasing in biologic labels — accepts optional parenthetical
+    abbreviation (e.g. '(IL-17RA)') between the receptor letter and the
+    word 'antagonist'. Returns 'Interleukin-17 Receptor A Antagonist [EPC]'
+    style string, or None if no match."""
+    m = re.search(
+        r"(interleukin[-\s][\w\-]+(?:\s+receptor\s+[A-Za-z]+)?)"
+        r"(?:\s*\([^)]{0,30}\))?"   # optional "(IL-17RA)"-style abbrev
+        r"\s+antagonist",
+        desc_text, re.IGNORECASE,
+    )
+    if not m:
+        return None
+    base = re.sub(r"\s+", " ", m.group(1).strip())
+    # Title-case while keeping single-letter receptor codes (A/B/C) upper.
+    parts = []
+    for tok in re.split(r"(\s+)", base):
+        if tok.strip() == "":
+            parts.append(tok)
+        elif tok.lower() in ("a", "b", "c"):
+            parts.append(tok.upper())
+        else:
+            parts.append(tok[:1].upper() + tok[1:].lower())
+    return f"{''.join(parts)} Antagonist [EPC]"
+
+
+def _fetch_dailymed_baseline(brand_name: str) -> Optional[dict]:
+    """Fallback to DailyMed when openFDA has no label. Two API calls:
+    search → pick best match → fetch SPL XML → map to openFDA shape →
+    parse_fda_label(). Returns dict tagged with source='dailymed', or None.
+    """
+    try:
+        import urllib.parse
+        import urllib.request
+        import xml.etree.ElementTree as ET
+
+        # --- Step 1: search by drug name ---
+        search_url = (
+            f"{DAILYMED_SEARCH_BASE}"
+            f"?drug_name={urllib.parse.quote(brand_name)}&pagesize=10"
+        )
+        req = urllib.request.Request(search_url, headers={"User-Agent": "pso-pipeline/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            search_data = json.loads(resp.read().decode("utf-8"))
+
+        rows = search_data.get("data") or []
+        if not rows:
+            log_debug({
+                "event": "dailymed_no_result",
+                "drug": brand_name,
+                "reason": "empty_data",
+            })
+            return None
+
+        # Filter: title must (a) contain the brand and (b) look like a drug
+        # label — has "(GENERIC_NAME)" pattern. This excludes false positives
+        # like "G-11 (CERCIS SILIQUASTRUM WHOLE)" homonym for SILIQ search.
+        brand_upper = brand_name.upper().strip()
+        candidates = []
+        for row in rows:
+            title = (row.get("title") or "").upper()
+            if brand_upper not in title:
+                continue
+            # Look for "(SOMETHING)" — the INN in parens
+            gen_match = re.search(r"\(([A-Z][A-Z0-9\-]{3,})\)", title)
+            if not gen_match:
+                continue
+            # Additional sanity: brand should appear before the parens
+            # (the brand is the first token in real drug titles)
+            paren_pos = title.find("(")
+            if paren_pos > 0 and brand_upper not in title[:paren_pos + len(brand_upper) + 2]:
+                continue
+            candidates.append((row, gen_match.group(1)))
+
+        if not candidates:
+            log_debug({
+                "event": "dailymed_no_result",
+                "drug": brand_name,
+                "reason": "no_matching_title",
+                "n_rows": len(rows),
+            })
+            return None
+
+        # Take the highest spl_version (most recent label revision)
+        candidates.sort(key=lambda c: c[0].get("spl_version", 0), reverse=True)
+        chosen_row, generic_name = candidates[0]
+        setid = chosen_row["setid"]
+        title = chosen_row.get("title", "")
+
+        # --- Step 2: fetch SPL XML ---
+        xml_url = f"{DAILYMED_SPL_BASE}/{setid}.xml"
+        req = urllib.request.Request(xml_url, headers={"User-Agent": "pso-pipeline/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            xml_bytes = resp.read()
+        root = ET.fromstring(xml_bytes)
+
+        # effective_time — root-level <effectiveTime value="YYYYMMDD"/>
+        eff_time_raw = ""
+        et_elem = root.find(f"{_DAILYMED_NS}effectiveTime")
+        if et_elem is not None:
+            eff_time_raw = et_elem.attrib.get("value", "")
+
+        # Sections — walk all <section> and pick INDICATIONS + DESCRIPTION.
+        # Use section.itertext() (not just <text>) so nested <excerpt>/
+        # <highlight> content is included. The pharm-class phrasing
+        # ("human interleukin-X receptor Y antagonist") lives in the
+        # excerpt/highlight under INDICATIONS, not the main <text>.
+        indications_text = ""
+        description_text = ""
+        for section in root.iter(f"{_DAILYMED_NS}section"):
+            code = section.find(f"{_DAILYMED_NS}code")
+            if code is None:
+                continue
+            section_code = code.attrib.get("code")
+            if section_code == _LOINC_INDICATIONS and not indications_text:
+                indications_text = re.sub(
+                    r"\s+", " ",
+                    "".join(section.itertext()).strip(),
+                )
+            elif section_code == _LOINC_DESCRIPTION and not description_text:
+                description_text = "".join(section.itertext()).strip()
+
+        # Pharm class — best-effort. Check INDICATIONS excerpt first (where
+        # "human ... antagonist" phrasing typically sits), then DESCRIPTION.
+        pharm_class = (
+            _extract_pharm_class_from_description(indications_text)
+            or _extract_pharm_class_from_description(description_text)
+        )
+
+        # Map to openFDA-shaped dict so parse_fda_label() works unchanged
+        synthetic_label = {
+            "indications_and_usage": [indications_text],
+            "effective_time": eff_time_raw,
+            "openfda": {
+                "generic_name": [generic_name] if generic_name else [],
+                "pharm_class_epc": [pharm_class] if pharm_class else [],
+            },
+        }
+
+        result = parse_fda_label(synthetic_label, brand_name)
+        result["source"] = "dailymed"
+        log_debug({
+            "event": "dailymed_baseline_loaded",
+            "drug": brand_name,
+            "setid": setid,
+            "title": title,
+            "spl_version": chosen_row.get("spl_version"),
+        })
+        return result
+
+    except Exception as e:
+        log_debug({"event": "dailymed_api_error", "drug": brand_name, "error": str(e)})
+        return None
+
+
+def fetch_fda_baseline(brand_name: str) -> Optional[dict]:
+    """Fetch FDA label baseline for a brand. Tries openFDA first; falls
+    back to DailyMed if openFDA has no data (404 / NOT_FOUND / network
+    error). Returns parsed baseline dict (tagged with source field) or
+    None if BOTH sources fail.
+    """
+    result = _fetch_openfda_baseline(brand_name)
+    if result:
+        return result
+
+    log_debug({"event": "fda_fallback_dailymed_try", "drug": brand_name})
+    result = _fetch_dailymed_baseline(brand_name)
+    if result:
+        log_debug({
+            "event": "fda_fallback_dailymed_success",
+            "drug": brand_name,
+            "min_age": result.get("min_age"),
+            "inn": result.get("inn"),
+        })
+        return result
+
+    log_debug({"event": "fda_both_sources_failed", "drug": brand_name})
+    return None
 
 
 # Other major indication keywords. If we can't find a PsO subsection and any
@@ -4750,12 +5079,18 @@ def main() -> None:
         print(f"ERROR: PDF_DIR does not exist: {PDF_DIR}")
         sys.exit(1)
     if not XLSX_PATH.exists():
-        print(f"ERROR: XLSX_PATH does not exist: {XLSX_PATH}")
+        print(f"ERROR: Submissions file does not exist: {XLSX_PATH}")
         sys.exit(1)
 
-    # Startup
-    print("Loading drug classifications from XLSX...")
-    BRANDED_DRUGS, GENERIC_DRUGS = load_drug_classifications(XLSX_PATH)
+    # Submission environment may ship only the Submissions file (CSV or
+    # XLSX) — no Reference / PsO Brands / Additional Extracted Data sheets.
+    # load_drug_classifications() defaults to PSO_MARKET_BASKET in that case.
+    is_xlsx = XLSX_PATH.suffix.lower() in (".xlsx", ".xls")
+
+    print("Loading drug classifications...")
+    BRANDED_DRUGS, GENERIC_DRUGS = load_drug_classifications(
+        XLSX_PATH if is_xlsx else None
+    )
     print(f"  Branded: {len(BRANDED_DRUGS)}  |  Generic: {len(GENERIC_DRUGS)}")
 
     print("Loading submissions...")
@@ -4776,22 +5111,27 @@ def main() -> None:
     if missing:
         print(f"  WARN: no FDA baseline for {missing} — those rows default to Bucket 25")
 
-    # Optional Reference-tab inspection (no halt)
-    try:
-        ref_row = load_reference_tab_transposed(XLSX_PATH)
-        log_debug({
-            "event": "reference_tab_parsed",
-            "n_fields": len(ref_row),
-            "has_filename": bool(ref_row.get("Filename")),
-            "has_brand": bool(ref_row.get("Brand")),
-        })
-    except Exception as e:
-        print(f"WARN: Reference tab parse failed at startup: {e}")
+    # Optional Reference-tab inspection (only if input is XLSX with that
+    # sheet — submission CSVs don't carry it). Never halts; logs warning.
+    if is_xlsx:
+        try:
+            ref_row = load_reference_tab_transposed(XLSX_PATH)
+            log_debug({
+                "event": "reference_tab_parsed",
+                "n_fields": len(ref_row),
+                "has_filename": bool(ref_row.get("Filename")),
+                "has_brand": bool(ref_row.get("Brand")),
+            })
+        except Exception as e:
+            print(f"INFO: Reference tab not present (CSV input or missing sheet): {e}")
+    else:
+        print("INFO: Submissions input is CSV — skipping Reference / Additional Data probes.")
 
     if not args.skip_determinism:
         determinism_test()
 
-    inspect_additional_data_tab(XLSX_PATH, submissions_df)
+    if is_xlsx:
+        inspect_additional_data_tab(XLSX_PATH, submissions_df)
 
     # Smoke-test-only mode
     if args.smoke_test:
@@ -4816,12 +5156,16 @@ def main() -> None:
             _atomic_checkpoint_write(ckpt["results"])
             print(f"Cleared {len(rerun_keys)} rows from checkpoint for rerun.")
 
-    # Smoke gate before full batch
-    if not args.skip_smoke_gate:
+    # Smoke gate depends on Reference sheet + manual_labels.csv — both are
+    # dev-only artifacts. Auto-skip when running against a submission CSV.
+    if not args.skip_smoke_gate and is_xlsx:
         print("\n=== Pre-batch smoke gate ===")
         if not run_smoke_test(XLSX_PATH):
             print("HALT: smoke test failed. Fix before running batch.")
             sys.exit(1)
+    elif not is_xlsx:
+        print("INFO: Submissions input is CSV — skipping smoke gate "
+              "(no Reference/manual_labels expected).")
 
     # Full batch
     results = process_all_rows(submissions_df, pdf_cache=pdf_cache)
