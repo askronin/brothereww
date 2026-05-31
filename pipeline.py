@@ -271,6 +271,37 @@ TARGETED_SYNTHETICS_NOT_IN_BASKET = {
     "olumiant", "baricitinib",
 }
 
+# Biosimilar brand → primary INN. Used by get_drug_aliases to recognize
+# INN-suffix forms (e.g. policies written as "ustekinumab-kfce" should
+# match a YESINTEK target). Keys are biosimilar brand names; values are
+# the primary INN that, combined with biosimilar suffixes like "-kfce",
+# "-aauz", "-atto", etc., cover the alternate forms policies may use.
+BIOSIMILAR_TO_PRIMARY_INN = {
+    # adalimumab biosimilars
+    "amjevita":  "adalimumab",
+    "cyltezo":   "adalimumab",
+    "hyrimoz":   "adalimumab",
+    "hadlima":   "adalimumab",
+    "idacio":    "adalimumab",
+    "hulio":     "adalimumab",
+    "yuflyma":   "adalimumab",
+    "yusimry":   "adalimumab",
+    "abrilada":  "adalimumab",
+    # infliximab biosimilars
+    "avsola":    "infliximab",
+    "inflectra": "infliximab",
+    "renflexis": "infliximab",
+    "ixifi":     "infliximab",
+    # ustekinumab biosimilars
+    "wezlana":   "ustekinumab",
+    "selarsdi":  "ustekinumab",
+    "yesintek":  "ustekinumab",
+    "otulfi":    "ustekinumab",
+    "steqeyma":  "ustekinumab",
+    "imuldosa":  "ustekinumab",
+    "pyzchiva":  "ustekinumab",
+}
+
 PHOTOTHERAPY_TERMS = {
     "phototherapy", "puva", "uvb", "uva", "narrowband uvb",
     "psoralen", "light therapy", "photochemotherapy",
@@ -436,14 +467,28 @@ def get_drug_aliases(drug_name: str) -> list[str]:
     """
     Brand → all strings to scan for in policy text.
     Combines brand, INN, and common biosimilar INN suffixes.
+
+    Biosimilar brand names (YESINTEK, OTULFI, AMJEVITA, etc.) also map to
+    their primary INN + every observed biosimilar suffix, so policies
+    written with the INN-suffix form (e.g. 'ustekinumab-kfce') match.
     """
     inn_reverse = {v: k for k, v in INN_TO_BRAND.items()}
     aliases = {drug_name.lower()}
+
+    # Direct brand → INN
     inn = inn_reverse.get(drug_name.lower())
+
+    # Biosimilar brand → primary INN (not in INN_TO_BRAND directly)
+    if not inn:
+        inn = BIOSIMILAR_TO_PRIMARY_INN.get(drug_name.lower())
+
     if inn:
         aliases.add(inn)
-        # Common biosimilar suffixes seen in PsO market (e.g. ustekinumab-aekn)
-        for suffix in ("-aekn", "-kfce", "-rdt", "-aauz", "-anbm", "-asbf"):
+        # All observed biosimilar suffix forms — pipeline scans for any
+        # of these in policy text when matching the target drug.
+        for suffix in ("-aekn", "-kfce", "-rdt", "-aauz", "-anbm", "-asbf",
+                       "-atto", "-adbm", "-adaz", "-aqvh", "-bwwd", "-fkjp",
+                       "-aaly", "-fbwm"):
             aliases.add(f"{inn}{suffix}")
     return sorted(aliases)
 
@@ -672,6 +717,10 @@ def _ocr_page_with_vision(
     )
     try:
         text = retry(call_llm, prompt=prompt, vision=True, image_b64=b64) or ""
+    except DailyQuotaExceeded:
+        # Quota mid-batch must halt + checkpoint; swallowing it would
+        # silently degrade OCR for every remaining sparse page in the batch.
+        raise
     except Exception as e:
         log_debug({
             "event": "vision_fallback_failed",
@@ -1098,9 +1147,20 @@ def _call_groq_text(
                         ("tpm" in err_lower)
                         or ("tokens per minute" in err_lower)
                     )
+                    # Organization-level restrictions are permanent for that
+                    # key (Groq has banned/locked the org). Treat as TPD-
+                    # equivalent: mark combo exhausted + move to next key,
+                    # don't propagate as "other" (which would kill the row).
+                    is_org_restricted = (
+                        ("organization has been restricted" in err_lower)
+                        or ("organization_restricted" in err_lower)
+                        or ("org_restricted" in err_lower)
+                    )
                     classification = (
                         "tpd" if is_daily_quota
-                        else ("tpm" if is_tpm else "other")
+                        else ("tpm" if is_tpm
+                              else ("org_restricted" if is_org_restricted
+                                    else "other"))
                     )
 
                     log_debug({
@@ -1118,6 +1178,15 @@ def _call_groq_text(
 
                     if is_daily_quota:
                         _mark_combo_exhausted(key_idx, model, reason="tpd")
+                        break  # break attempt loop, walk to next model
+
+                    if is_org_restricted:
+                        # Whole organization is locked — mark EVERY model
+                        # exhausted on this key so we don't waste attempts
+                        # on llama/qwen/gpt-oss which will all return the
+                        # same 400. Then break to walk to the next key.
+                        for m in model_chain:
+                            _mark_combo_exhausted(key_idx, m, reason="org_restricted")
                         break  # break attempt loop, walk to next model
 
                     if is_tpm:
@@ -1377,10 +1446,22 @@ def retry(func, *args, max_attempts: int = MAX_RETRIES, **kwargs):
             time.sleep(wait)
 
 
-def parse_json_safe(response: str, retry_prompt: Optional[str] = None) -> dict:
+def parse_json_safe(
+    response: str,
+    retry_prompt: Optional[str] = None,
+    retry_model_chain: Optional[list] = None,
+    retry_max_tokens: Optional[int] = None,
+    retry_system_prompt: Optional[str] = None,
+) -> dict:
     """Parse LLM JSON output safely. Handles markdown fences, trailing
     commas, and extra prose around the JSON. If retry_prompt is provided
     and the first parse fails, reprompts the model once for clean JSON.
+
+    retry_model_chain / retry_max_tokens / retry_system_prompt: pass the
+    SAME chain/budget/system prompt that was used for the original call.
+    Without these, the retry would silently fall back to the default
+    (max_tokens=4096 + default model chain), which can burn quota and
+    pick a different model than the caller intended.
     """
 
     def _attempt(text: str) -> dict:
@@ -1416,7 +1497,17 @@ def parse_json_safe(response: str, retry_prompt: Optional[str] = None) -> dict:
         )
         retry_response = ""
         try:
-            retry_response = retry(call_llm, strict_prompt)
+            # Preserve original model chain + budget on retry so we don't
+            # silently fall back to defaults (which burn quota and may
+            # route to a different model than the caller chose).
+            call_kwargs = {}
+            if retry_model_chain is not None:
+                call_kwargs["model_chain"] = retry_model_chain
+            if retry_max_tokens is not None:
+                call_kwargs["max_tokens"] = retry_max_tokens
+            if retry_system_prompt is not None:
+                call_kwargs["system_prompt"] = retry_system_prompt
+            retry_response = retry(call_llm, strict_prompt, **call_kwargs)
             return _attempt(retry_response)
         except Exception as second_err:
             log_debug({
@@ -1707,7 +1798,12 @@ Return ONLY this JSON. Use null for any section that does not appear:
         max_tokens=MAX_TOKENS_OUTLINE_MAP,
         model_chain=GROQ_TEXT_MODELS_FOR_REASONING,
     )
-    anchors = parse_json_safe(response, retry_prompt=prompt)
+    anchors = parse_json_safe(
+        response, retry_prompt=prompt,
+        retry_model_chain=GROQ_TEXT_MODELS_FOR_REASONING,
+        retry_max_tokens=MAX_TOKENS_OUTLINE_MAP,
+        retry_system_prompt=SYSTEM_PROMPT_EXTRACTOR,
+    )
     return {k: anchors.get(k) for k in SECTION_KEYS}
 
 
@@ -1870,7 +1966,11 @@ Return ONLY this JSON:
             max_tokens=MAX_TOKENS_RECURSIVE_ZOOM,
             model_chain=GROQ_TEXT_MODELS_FOR_REASONING,
         )
-        keep = parse_json_safe(response, retry_prompt=prompt).get("keep", [])
+        keep = parse_json_safe(
+            response, retry_prompt=prompt,
+            retry_model_chain=GROQ_TEXT_MODELS_FOR_REASONING,
+            retry_max_tokens=MAX_TOKENS_RECURSIVE_ZOOM,
+        ).get("keep", [])
     except Exception as e:
         log_debug({
             "event": "recursive_zoom_failed",
@@ -2142,7 +2242,12 @@ Return ONLY this JSON:
         max_tokens=MAX_TOKENS_PASS_1,
         model_chain=GROQ_TEXT_MODELS_FOR_PASS_1_2,
     )
-    return parse_json_safe(response, retry_prompt=prompt)
+    return parse_json_safe(
+        response, retry_prompt=prompt,
+        retry_model_chain=GROQ_TEXT_MODELS_FOR_PASS_1_2,
+        retry_max_tokens=MAX_TOKENS_PASS_1,
+        retry_system_prompt=SYSTEM_PROMPT_EXTRACTOR,
+    )
 
 
 # ── PASS 2 — Step therapy verbatim (single blob) ─────────────────
@@ -2281,7 +2386,12 @@ Return ONLY this JSON (the value MUST be a plain string, never a dict/list):
         max_tokens=MAX_TOKENS_PASS_2,
         model_chain=GROQ_TEXT_MODELS_FOR_PASS_1_2,
     )
-    result = parse_json_safe(response, retry_prompt=prompt)
+    result = parse_json_safe(
+        response, retry_prompt=prompt,
+        retry_model_chain=GROQ_TEXT_MODELS_FOR_PASS_1_2,
+        retry_max_tokens=MAX_TOKENS_PASS_2,
+        retry_system_prompt=SYSTEM_PROMPT_EXTRACTOR,
+    )
 
     text = result.get("combined_step_text", "") or ""
     if text.strip().upper() in ("NA", "N/A", "NONE", ""):
@@ -2325,7 +2435,13 @@ def extract_step_counts(
             "reasoning":         "No step therapy text from Pass 2",
         }
 
-    branded_list = ", ".join(sorted(BRANDED_DRUGS)[:30])
+    # Use FULL branded list — earlier code sliced [:30] alphabetically which
+    # silently omitted common PsO targets (SKYRIZI, STELARA, SOTYKTU, TALTZ,
+    # TREMFYA, YESINTEK) past the alphabetical cutoff. The full PsO market
+    # basket is ~50 entries — ~400 chars added to the prompt is negligible
+    # for Scout's 30K TPM budget and prevents the LLM from mis-classifying
+    # these brands when they appear in step-therapy text.
+    branded_list = ", ".join(sorted(BRANDED_DRUGS))
     generic_list = ", ".join(sorted(GENERIC_DRUGS))
     section_markers = _extract_section_markers(assembled_context)
 
@@ -2690,7 +2806,12 @@ Return ONLY this JSON:
         max_tokens=MAX_TOKENS_PASS_3,
         model_chain=GROQ_TEXT_MODELS_FOR_REASONING,
     )
-    return parse_json_safe(response, retry_prompt=prompt)
+    return parse_json_safe(
+        response, retry_prompt=prompt,
+        retry_model_chain=GROQ_TEXT_MODELS_FOR_REASONING,
+        retry_max_tokens=MAX_TOKENS_PASS_3,
+        retry_system_prompt=SYSTEM_PROMPT_EXTRACTOR,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -4050,10 +4171,10 @@ def assign_bucket(counts: dict) -> int:
     improvement = counts.get("improvement", 0)
 
     # Bucket 0 — Near-impossible
-    if (severe >= 1 and major >= 1) or major >= 3 or severe >= 2:
+    if (severe >= 1 and major >= 2) or major >= 3 or severe >= 2:
         return 0
     # Bucket 15 — Very restrictive
-    if major >= 2 or severe >= 1:
+    if (major >= 2 or severe >= 1) or (severe >= 1 and major >= 1):
         return 15
     # Bucket 25 — Restrictive
     if major == 1 or moderate >= 2 or minor >= 3:
@@ -4203,21 +4324,28 @@ def _atomic_checkpoint_write(results: list) -> None:
 
 def _na_row_with_warning(warning: str) -> dict:
     """Empty row with all-NA sentinels (§A contract) + a single warning tag.
-    Used for unrecoverable rows: drug not found, PDF missing, exception."""
+    Used for unrecoverable rows: drug not found, PDF missing, exception.
+
+    Access score: 0 when drug-not-found (PRODUCT_NOT_FOUND per delta spec),
+    else 25 (default for unscorable rows). NA-fields are explicit so the
+    coverage_count check in compute_access_score wouldn't help — we set
+    the score directly here.
+    """
+    is_product_not_found = "DRUG_NOT_FOUND" in warning
     return {
         "age": "NA",
         "combined_step_text": "NA",
         "steps_brands": "NA",
         "steps_generic": "NA",
         "step_phototherapy": "NA",
-        "tb_test_required": "No",
+        "tb_test_required": "NA",
         "quantity_limits_text": "NA",
         "specialist_types": "NA",
-        "initial_auth_duration_months": "Unspecified",
+        "initial_auth_duration_months": "NA",
         "reauth_duration_months": "NA",
-        "reauth_required": "No",
+        "reauth_required": "NA",
         "reauth_requirements_text": "NA",
-        "access_score": "",
+        "access_score": 0 if is_product_not_found else 25,
         "_warnings": [warning],
     }
 
@@ -4281,7 +4409,11 @@ def process_single_row(
             else:
                 pruned = _prune_outline(outline)
                 anchors = map_outline_to_sections(pruned, drug, indication)
-                sections = slice_by_anchors(full_text, pruned, anchors)
+                # Use the FULL outline (not pruned) for slicing — pruning is
+                # only for the LLM map call (token cost). Slicing needs every
+                # heading to correctly bound section boundaries; missing
+                # intermediate headings can make sections over-broad.
+                sections = slice_by_anchors(full_text, outline, anchors)
                 if not any(sections.values()):
                     log_debug({
                         "event": "sectioning_empty_falling_back",
@@ -4330,19 +4462,23 @@ def process_single_row(
             extract_step_therapy_text, context, drug, indication, other_brands,
             step_anchor,
         )
-        combined_step_text = step_pass2.get("combined_step_text", "NA")
+        pass2_step_text = step_pass2.get("combined_step_text", "NA")
 
         # Safety net for Pass 3: if Pass 2 STILL dropped the preferred-product
         # language (anchor returned non-empty but combined_step_text missed it),
-        # prepend the anchor to combined_step_text so Pass 3 sees it directly.
-        if step_anchor and combined_step_text and combined_step_text != "NA":
+        # build an AUGMENTED version of the step text for Pass 3's reasoning
+        # input. Keep pass2_step_text CLEAN — it's what ends up in the
+        # partner-facing CSV (Step Therapy column) and must not contain
+        # internal "[FROM STEP THERAPY ANCHOR — keyword-scanned]" markers.
+        pass3_step_text = pass2_step_text
+        if step_anchor and pass2_step_text and pass2_step_text != "NA":
             anchor_has_preferred = bool(
                 re.search(r"preferred\s+products?|THREE\s+preferred|TWO\s+additional",
                           step_anchor, re.IGNORECASE)
             )
             pass2_has_preferred = bool(
                 re.search(r"preferred\s+products?|THREE\s+preferred|TWO\s+additional",
-                          combined_step_text, re.IGNORECASE)
+                          pass2_step_text, re.IGNORECASE)
             )
             if anchor_has_preferred and not pass2_has_preferred:
                 log_debug({
@@ -4350,12 +4486,20 @@ def process_single_row(
                     "filename": filename,
                     "drug": drug,
                 })
-                combined_step_text = (
+                # Pass 3 sees both sources with explicit provenance tags.
+                pass3_step_text = (
                     f"[FROM STEP THERAPY ANCHOR — keyword-scanned]\n"
                     f"{step_anchor}\n\n"
                     f"[FROM PASS 2 — outline-derived]\n"
-                    f"{combined_step_text}"
+                    f"{pass2_step_text}"
                 )
+
+        # combined_step_text is the canonical name downstream code expects;
+        # use the augmented version for the rest of this row's processing
+        # (Pass 3 input, rule_based_step_count, validation token-recall).
+        # We'll strip the internal markers from pass2_step_text before
+        # writing to params, so the CSV stays clean.
+        combined_step_text = pass3_step_text
 
         # Pass 3 (with rule-based fallback)
         llm_failed = False
@@ -4381,9 +4525,13 @@ def process_single_row(
             llm_counts, rule_counts, llm_failed=llm_failed,
         )
 
-        # Merge
+        # Merge — use the CLEAN pass2_step_text for the CSV column, NOT
+        # the augmented combined_step_text (which may carry internal
+        # provenance markers like "[FROM STEP THERAPY ANCHOR …]" that
+        # are useful for Pass 3 reasoning but must not leak to partner-
+        # facing output).
         params = {**simple, **final_counts}
-        params["combined_step_text"] = combined_step_text
+        params["combined_step_text"] = pass2_step_text
         params.setdefault("_warnings", []).extend(count_flags)
 
         # Validate
@@ -4435,8 +4583,12 @@ def process_single_row(
                 "drug": drug,
                 "error": str(e),
             })
-            params["access_score"] = ""
-            params.setdefault("_warnings", []).append(f"ACCESS_SCORE_FAILED: {e}")
+            # Per spec: unscorable rows ship Bucket 25 (FDA_BASELINE_MISSING
+            # default) with a manual-review warning. Never ship blank.
+            params["access_score"] = 25
+            params.setdefault("_warnings", []).append(
+                f"ACCESS_SCORE_FAILED_DEFAULTED_TO_25: {e}"
+            )
 
         if params.get("_warnings"):
             log_debug({
