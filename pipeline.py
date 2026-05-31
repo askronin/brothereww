@@ -2210,20 +2210,35 @@ OUTPUT FORMAT — VERY IMPORTANT:
   (e.g. "Stelara 90mg/mL: 1 syringe per 56 days"); the generic statement
   "Quantity limits exist" with no specifics is NOT a match.
 
-- For specialist_types: if the policy lists prescriber specialty BY
-  INDICATION (e.g. a "Prescriber Specialties" section with sub-bullets
-  per indication), return ONLY the specialty for {indication}.
-  Example policy text:
-    "1. Prescriber Specialties — must be prescribed by:
-       1. Plaque psoriasis: dermatologist
-       2. Psoriatic arthritis: rheumatologist or dermatologist
-       3. Ulcerative colitis and Crohn's disease: gastroenterologist"
-  → For indication="Plaque Psoriasis", return "dermatologist" ONLY.
-  → Do NOT return "dermatologist, rheumatologist, gastroenterologist" —
-    rheumatologist and gastroenterologist apply to OTHER indications.
-  If the policy lists ONE specialty applying to all indications (or no
-  per-indication breakdown), return that single value or comma-list as
-  written. Capitalisation as in source ("Dermatologist" vs "dermatologist").
+- For specialist_types: ONLY extract specific specialty names LITERALLY
+  written in the policy text. Do NOT infer or guess based on the
+  indication.
+  ⚠️ CRITICAL — return "NA" when the policy uses generic/vague phrases
+  like ALL of:
+    - "appropriate specialist" / "appropriate specialist based on indication"
+    - "qualified physician" / "qualified provider"
+    - "licensed prescriber" / "licensed practitioner"
+    - "treating physician" / "physician with experience in [condition]"
+    - "specialist familiar with the disease"
+  These do NOT name a specific specialty → return "NA", NOT "dermatologist"
+  (even though dermatologist is the natural specialty for plaque psoriasis).
+  Inferring from the indication is HALLUCINATION — the policy did not
+  actually require that specialty.
+
+  WHEN the policy DOES name specific specialties:
+  - If listed BY INDICATION (e.g. a "Prescriber Specialties" section with
+    sub-bullets per indication), return ONLY the specialty for {indication}.
+    Example policy text:
+      "1. Prescriber Specialties — must be prescribed by:
+         1. Plaque psoriasis: dermatologist
+         2. Psoriatic arthritis: rheumatologist or dermatologist
+         3. Ulcerative colitis and Crohn's disease: gastroenterologist"
+    → For indication="Plaque Psoriasis", return "dermatologist" ONLY.
+    → Do NOT return "dermatologist, rheumatologist, gastroenterologist" —
+      rheumatologist and gastroenterologist apply to OTHER indications.
+  - If listed once for all indications (or no per-indication breakdown),
+    return that single value or comma-list as written.
+  Capitalisation as in source ("Dermatologist" vs "dermatologist").
 
 Return ONLY this JSON:
 {{
@@ -3165,6 +3180,78 @@ def rule_step_na_format(params: dict) -> dict:
     return params
 
 
+# Vague specialist phrases — policies that say one of these do NOT require
+# a specific specialty. If extracted specialist_types is not literally
+# present in the source PDF text BUT the source has one of these vague
+# phrases, the LLM hallucinated a specialty from medical knowledge.
+_VAGUE_SPECIALIST_PHRASES = (
+    "appropriate specialist",
+    "qualified physician",
+    "qualified provider",
+    "qualified prescriber",
+    "licensed prescriber",
+    "licensed practitioner",
+    "treating physician",
+    "treating provider",
+    "physician with experience",
+    "specialist familiar with",
+    "appropriate prescriber",
+)
+
+# Specific specialties the LLM commonly hallucinates from indication.
+_SPECIFIC_SPECIALTIES = (
+    "dermatologist", "rheumatologist", "gastroenterologist",
+    "hematologist", "oncologist", "neurologist", "nephrologist",
+    "endocrinologist", "ophthalmologist", "cardiologist",
+)
+
+
+def rule_specialist_not_in_source(params: dict, source_text: str = "") -> dict:
+    """Deterministic backstop against LLM hallucinating a specific specialty
+    from the indication (e.g. PDF says 'appropriate specialist based on
+    indication' → LLM returns 'dermatologist' for PsO).
+
+    Logic:
+      1. If extracted specialist_types names a SPECIFIC specialty
+         (dermatologist, rheumatologist, etc.)
+      2. AND that specialty word is NOT literally in the source PDF text
+      3. AND the source text has a VAGUE specialist phrase
+        → override to NA (we cannot prove the policy named it).
+    """
+    if not source_text:
+        return params
+    spec = (params.get("specialist_types") or "").strip().lower()
+    if not spec or spec in ("na", "n/a", "none", "null", ""):
+        return params
+
+    src_lower = source_text.lower()
+    src_has_vague = any(p in src_lower for p in _VAGUE_SPECIALIST_PHRASES)
+    if not src_has_vague:
+        return params  # source has specific specialty language; trust LLM
+
+    # If the LLM-extracted specialty includes any specific name that is
+    # NOT literally in the source text, override.
+    extracted_specialties = [
+        s.strip() for s in re.split(r"[,;/]", spec) if s.strip()
+    ]
+    confirmed_in_source = [
+        s for s in extracted_specialties
+        if any(spc in s for spc in _SPECIFIC_SPECIALTIES)
+        and re.search(rf"\b{re.escape(s)}\b", src_lower)
+    ]
+
+    if not confirmed_in_source:
+        log_debug({
+            "event": "specialist_hallucination_overridden",
+            "extracted": params.get("specialist_types"),
+            "reason": "source has vague specialist phrase only; "
+                      "no specific specialty word in PDF text",
+        })
+        params["specialist_types"] = "NA"
+        params.setdefault("_warnings", []).append("SPECIALIST_VAGUE_OVERRIDDEN_TO_NA")
+    return params
+
+
 # ── ADVISORY: semantic contradictions ─────────────────────────────
 
 def semantic_contradiction_checks(params: dict, source_text: str = "") -> list:
@@ -3335,6 +3422,7 @@ def validate_all(
     params = rule_quantity_limits_strict(params)
     params = rule_age_format(params)
     params = rule_step_na_format(params)
+    params = rule_specialist_not_in_source(params, source_text)
 
     critical_failures: list = []
     if source_text:

@@ -35,7 +35,8 @@ Authorization of 12 months may be granted for adult members for treatment of mod
 * Coverage up to the exception limits may be provided with prior authorization",dermatologist,12,12,Yes,"Authorization of 12 months may be granted for all adult members (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain a positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
 • Reduction in body surface area (BSA) affected from baseline
 • Improvement in signs and symptoms from baseline (e.g., itching, redness, flaking, scaling, burning, cracking, pain)",0
-250819-3621812.pdf,STELARA,>=6,"•  Plaque Psoriasis: Amjevita, Enbrel, Humira, Avsola, Cimzia, Cosentyx, Ilumya, Inflectra, Remicade, Renflexis, Siliq, Tremfya, Stelara, Taltz, Skyrizi 
+250819-3621812.pdf,STELARA,>=6,"For Plaque Psoriasis: Amjevita, Enbrel, Humira, Avsola, Cimzia, Cosentyx, Ilumya, Inflectra, Remicade, Renflexis, Siliq, Tremfya, Stelara, Taltz, Skyrizi 
+
  o   Member is 18 years of age or older - Amjevita, Humira, Avsola, Cimzia, Ilumya, Inflectra, Remicade, Renflexis, Siliq, Skyrizi, Tremfya 
  o Member is 4 years of age or older - Enbrel 
  o Member is 6 years of age or older – Cosentyx, Stelara, Taltz 
@@ -45,25 +46,9 @@ Authorization of 12 months may be granted for adult members for treatment of mod
       Less than 10% Body Surface Area is affected, but involves sensitive areas (for example, hands, feet, face, or genitals) that interfere with daily activities 
       Psoriasis Area and Severity Index score more than 10 
  o  Phototherapy (PUVA (psoralen ultraviolet type A), UVB (ultraviolet type B)) has been ineffective 
- o  For Siliq: Mental health evaluation has been completed by prescriber or psychiatrist, if member has history of prior suicide attempt, bipolar disorder, or depressive disorder.",NA,1,No,Yes,"Stelara (ustekinumab):
-   Psoriasis adults:
-   • Weight <100kg: One, 45mg syringe per 28 days for initial 2 months; then one, 45mg syringe per 84 days
-   • Weight >100kg: One, 90mg syringe per 28 days for initial 2 months; then one, 90mg syringe per 84 days
-   Psoriasis pediatrics:
-   • Weight < 60kg: One, 45mg syringe per 28 days for initial 2 months; then one, 45mg syringe per 84 days
-   • Weight 60 to 100kg: One, 45mg syringe per 28 days for initial 2 months; then one, 45mg syringe per 84 days
-   • Weight >100kg: One, 90mg syringe per 28 days for initial 2 months; then one, 90mg syringe per 84 day
-   Psoriatic Arthritis:
-   • One, 45mg syringe per 28 days for initial 2 months; then 1, 45mg syringe per 84 days
-   Ulcerative Colitis, Crohn’s:
-   • Initial:
-       Up to 55kg: 260 mg (2, 130mg vials)
-       55kg < to ≤ 85kg: 390 mg (3, 130mg vials)
-       > 85 kg: 520 mg (4, 130mg vials)
-   • Maintenance: One, 90mg syringe per 56 days starting 8 weeks after initial dose",NA,6,6,Yes,Documentation indicating member has shown improvement in signs and symptoms of disease,25
-250819-3621812.pdf,TREMFYA,>=18,"Non-Preferred Cytokines and Cell Adhesion Molecule (CAM) Antagonists: Require trial and failure of ONE preferred anti-TNF (Enbrel or Humira/Amjevita Auto-Injector) OR Kevzara, where indicated, in addition to all other clinical criteria. 
+ o  For Siliq: Mental health evaluation has been completed by prescriber or psychiatrist, if member has history of prior suicide attempt, bipolar disorder, or depressive disorder.",NA,1,Yes,Yes,NA,dermatologist,Unspecified,6,Yes,Documentation indicating member has shown improvement in signs and symptoms of disease,25
+250819-3621812.pdf,TREMFYA,>=18,"For Plaque Psoriasis: Amjevita, Enbrel, Humira, Avsola, Cimzia, Cosentyx, Ilumya, Inflectra, Remicade, Renflexis, Siliq, Tremfya, Stelara, Taltz, Skyrizi 
 
-Plaque Psoriasis: Amjevita, Enbrel, Humira, Avsola, Cimzia, Cosentyx, Ilumya, Inflectra, Remicade, Renflexis, Siliq, Tremfya, Stelara, Taltz, Skyrizi 
  o   Member is 18 years of age or older - Amjevita, Humira, Avsola, Cimzia, Ilumya, Inflectra, Remicade, Renflexis, Siliq, Skyrizi, Tremfya 
  o Member is 4 years of age or older - Enbrel 
  o Member is 6 years of age or older – Cosentyx, Stelara, Taltz 
@@ -72,7 +57,8 @@ Plaque Psoriasis: Amjevita, Enbrel, Humira, Avsola, Cimzia, Cosentyx, Ilumya, In
       More than 10% of Body Surface Area is affected 
       Less than 10% Body Surface Area is affected, but involves sensitive areas (for example, hands, feet, face, or genitals) that interfere with daily activities 
       Psoriasis Area and Severity Index score more than 10 
- o  Phototherapy (PUVA (psoralen ultraviolet type A), UVB (ultraviolet type B)) has been ineffective",1,1,No,Yes,Tremfya: Two syringes or injectors in the initial 28 days then one syringe or injector every 8 weeks,NA,6,6,Yes,Documentation indicating member has shown improvement in signs and symptoms of disease,25
+ o  Phototherapy (PUVA (psoralen ultraviolet type A), UVB (ultraviolet type B)) has been ineffective 
+ o  For Siliq: Mental health evaluation has been completed by prescriber or psychiatrist, if member has history of prior suicide attempt, bipolar disorder, or depressive disorder.",NA,1,No,Yes,Tremfya: Two syringes or injectors in the initial 28 days then one syringe or injector every 8 weeks,dermatologist,6,6,Yes,Documentation indicating member has shown improvement in signs and symptoms of disease,25
 296961-4569911.pdf,STELARA,>=6,"•  Remove methotrexate and cyclosporine from the list of conventional therapy to try prior to use of BRMs AND 5.  History of trial and failure of at least TWO of the following conventional therapies at 
 maximally tolerated doses (TWO months of each) unless contraindicated or clinically 
 significant adverse effects are experienced (document drug, date, and duration of 
