@@ -1,23 +1,36 @@
 Filename,Brand,Age,Step Therapy Requirements Documented in Policy,Number of Steps through Brands,Number of Steps through Generic,Step through-Phototherapy,TB Test required,Quantity Limits,Specialist Types,Initial Authorization Duration(in-months),Reauthorization Duration(in-months),Reauthorization Required,Reauthorization Requirements Documented in Policy,Access Score
-330109-4880941.pdf,TREMFYA,>=18,"The patient is unable to take THREE preferred products, where indicated, for the given diagnosis due to a trial and inadequate treatment response or intolerance, or a contraindication. Documentation is required for approval. THREE preferred products: • A preferred ustekinumab product • TWO additional preferred products o A preferred adalimumab product OR Enbrel o Rinvoq o Otezla AND Member has had an inadequate response or intolerance to either phototherapy (e.g., UVB, PUVA) or pharmacologic treatment with methotrexate, cyclosporine, or acitretin. o Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine, and acitretin (see Appendix).",3.0,1.0,No,Yes,"Tremfya (guselkumab) 100 mg/mL prefilled syringe/One-press injector:
-  • 1 syringe/injector per 56 days
-  • Exception limit: 2 syringes/injectors per 28 days
+330109-4880941.pdf,TREMFYA,>=18,"The patient is unable to take THREE preferred products, where indicated, for the given diagnosis due to a trial and inadequate treatment response or intolerance, or a contraindication. Documentation is required for approval. 
+
+THREE preferred products: 
+• A preferred ustekinumab product 
+• TWO additional preferred products 
+o A preferred adalimumab product OR Enbrel 
+o Rinvoq 
+o Otezla 
+
+Authorization of 12 months may be granted for adult members who have previously received a biologic or targeted synthetic drug (e.g., Sotyktu, Otezla) indicated for the treatment of moderate to severe plaque psoriasis. 
+
+Authorization of 12 months may be granted for adult members for treatment of moderate to severe plaque psoriasis when any of the following criteria is met: 
+• Crucial body areas (e.g., hands, feet, face, neck, scalp, genitals/groin, intertriginous areas) are affected. 
+• At least 10% of body surface area (BSA) is affected. 
+• At least 3% of body surface area (BSA) is affected and the member meets either of the following criteria: 
+o Member has had an inadequate response or intolerance to either phototherapy (e.g., UVB, PUVA) or pharmacologic treatment with methotrexate, cyclosporine, or acitretin. 
+o Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine, and acitretin (see Appendix).",3,1,No,Yes,"Tremfya (guselkumab) 100 mg/mL prefilled syringe/One-press injector:
+  o 1 syringe/injector per 56 days
+  o Exception limit: 2 syringes/injectors per 28 days
+
 Tremfya (guselkumab) 200 mg/2 mL prefilled syringe/pen:
-  • 1 syringe/pen per 28 days
-  • Exception limit: 6 syringes/pens per 56 days
+  o 1 syringe/pen per 28 days
+  o Exception limit: 6 syringes/pens per 56 days
+
 Tremfya (guselkumab) 200 mg/2 mL prefilled pen Induction Pack for Crohn’s Disease:
-  • Exception limit: 3 cartons (6 pens) per 56 days",dermatologist,12,12,Yes,"Authorization of 12 months may be granted for all adult members (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain a positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
+  o Exception limit: 3 cartons (6 pens) per 56 days",dermatologist,12,12,Yes,"Authorization of 12 months may be granted for all adult members (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain a positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
+
 • Reduction in body surface area (BSA) affected from baseline
 • Improvement in signs and symptoms from baseline (e.g., itching, redness, flaking, scaling, burning, cracking, pain)",0
-148593-4960549.pdf,STELARA,>=6,"For the treatment of chronic severe plaque psoriasis, member has a contraindication, intolerance or ineffective response to all of the following available equivalent alternative targeted immune modulators (one-month trial): both Ilumya, Stelara, and either Avsola, Inflectra, or Renflexis.
-
-1. For members 6 years of age or older who have previously received a biologic or targeted synthetic drug (e.g., Sotyktu, Otezla) indicated for the treatment of moderate to severe plaque psoriasis; or
-
-3. At least 3% of body surface area (BSA) is affected and the member meets either of the following criteria:
-  1. Member has had an inadequate response or intolerance to either phototherapy (e.g., UVB, PUVA) or pharmacologic treatment with methotrexate, cyclosporine, or acitretin; or
-  2. Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine and acitretin (see Appendix);",1.0,1.0,No,Yes,,dermatologist,Unspecified,Unspecified,Yes,"For all members 6 years or older (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain a positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
+148593-4960549.pdf,STELARA,>=6,"For the treatment of moderate to severe plaque psoriasis, member has a contraindication, intolerance or ineffective response to all of the following available equivalent alternative targeted immune modulators (one-month trial): both Ilumya, Stelara, and either Avsola, Inflectra, or Renflexis. AND For members 6 years of age or older for the treatment of moderate to severe plaque psoriasis when any of the following criteria is met: 3. At least 3% of body surface area (BSA) is affected and the member meets either of the following criteria: 1. Member has had an inadequate response or intolerance to either phototherapy (e.g., UVB, PUVA) or pharmacologic treatment with methotrexate, cyclosporine, or acitretin; or 2. Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine and acitretin (see Appendix);",3,1,No,Yes,NA,dermatologist,Unspecified,Unspecified,Yes,"For all members 6 years or older (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain a positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
 1. Reduction in body surface area (BSA) affected from baseline; or
-2. Improvement in signs and symptoms from baseline (e.g., itching, redness, flaking, scaling, burning, cracking, pain);",25
+2. Improvement in signs and symptoms from baseline (e.g., itching, redness, flaking, scaling, burning, cracking, pain);",15
 305252-5002815.pdf,TREMFYA,>=18,"For adult members who have previously received a biologic or targeted synthetic drug (e.g., Sotyktu, Otezla) indicated for the treatment of moderate to severe plaque psoriasis; or
 
 For adult members for treatment of moderate-to-severe plaque psoriasis when any of the following criteria is met:
@@ -26,7 +39,10 @@ For adult members for treatment of moderate-to-severe plaque psoriasis when any 
 2. At least 10% of the body surface area (BSA) is affected; or
 3. At least 3% of the BSA is affected and the member meets either of the following criteria:
     1. Member has had an inadequate response or intolerance to either phototherapy (e.g., UVB, PUVA) or pharmacologic treatment with methotrexate, cyclosporine, or acitretin; or
-    2. Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine, and acitretin (see Appendix);",1.0,1.0,No,Yes,,,Unspecified,,No,,25
+    2. Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine, and acitretin (see Appendix);",1,1,No,Yes,NA,dermatologist,Unspecified,Unspecified,Yes,"For plaque psoriasis (PsO)
+For all adult members (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
+1. Reduction in body surface area (BSA) affected from baseline; or
+2. Improvement in signs and symptoms from baseline (e.g., itching, redness, flaking, scaling, burning, cracking, pain);",25
 176207-4867884.pdf,TREMFYA,>=18,"Authorization of 12 months may be granted for adult members who have previously received a biologic or targeted synthetic drug (e.g., Sotyktu, Otezla) indicated for the treatment of moderate to severe plaque psoriasis. 
 
 Authorization of 12 months may be granted for adult members for treatment of moderate to severe plaque psoriasis when any of the following criteria is met:
@@ -38,18 +54,14 @@ Member has had an inadequate response or intolerance to either phototherapy (e.g
 Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine, and acitretin (see Appendix).",1.0,1.0,No,Yes,,dermatologist,12,12,Yes,"Authorization of 12 months may be granted for all adult members (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain a positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
 Reduction in body surface area (BSA) affected from baseline
 Improvement in signs and symptoms from baseline (e.g., itching, redness, flaking, scaling, burning, cracking, pain)",25
-324603-4962713.pdf,STELARA,>=6,"Authorization of 12 months may be granted for members 6 years of age and older who have previously received a biologic or targeted synthetic drug (e.g., Sotyktu, Otezla) indicated for treatment of moderate to severe plaque psoriasis. 
+324603-4962713.pdf,STELARA,>=6,"Authorization of 12 months may be granted for members 6 years of age and older who have previously received a biologic or targeted synthetic drug (e.g., Sotyktu, Otezla) indicated for treatment of moderate to severe plaque psoriasis.
 
-Authorization of 12 months may be granted for members 6 years of age and older for treatment of moderate to severe plaque psoriasis when any of the following criteria is met: 
+Authorization of 12 months may be granted for members 6 years of age and older for treatment of moderate to severe plaque psoriasis when any of the following criteria is met:
 
-Crucial body areas (e.g., hands, feet, face, neck, scalp, genitals/groin, intertriginous areas) are affected. 
-
-At least 10% of body surface area (BSA) is affected. 
-
-At least 3% of body surface area (BSA) is affected and the member meets either of the following criteria: 
-
-Member has had an inadequate response or intolerance to either phototherapy (e.g., UVB, PUVA) or pharmacologic treatment with methotrexate, cyclosporine, or acitretin. 
-
-Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine, and acitretin (see Appendix).",1.0,1.0,No,Yes,,dermatologist,12,12,Yes,"Authorization of 12 months may be granted for all members 6 years of age and older (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain a positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
+Crucial body areas (e.g., hands, feet, face, neck, scalp, genitals/groin, intertriginous areas) are affected.
+At least 10% of body surface area (BSA) is affected.
+At least 3% of body surface area (BSA) is affected and the member meets either of the following criteria:
+Member has had an inadequate response or intolerance to either phototherapy (e.g., UVB, PUVA) or pharmacologic treatment with methotrexate, cyclosporine, or acitretin.
+Member has a clinical reason to avoid pharmacologic treatment with methotrexate, cyclosporine, and acitretin (see Appendix).",1,1,No,Yes,NA,dermatologist,12,12,Yes,"Authorization of 12 months may be granted for all members 6 years of age and older (including new members) who are using the requested medication for moderate to severe plaque psoriasis and who achieve or maintain a positive clinical response as evidenced by low disease activity or improvement in signs and symptoms of the condition when either of the following is met:
 Reduction in body surface area (BSA) affected from baseline
 Improvement in signs and symptoms from baseline (e.g., itching, redness, flaking, scaling, burning, cracking, pain)",25

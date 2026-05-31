@@ -179,11 +179,22 @@ MAX_TOKENS_PASS_1         = 1024   # 7-field JSON, ~500 tok seen
 MAX_TOKENS_PASS_2         = 2048   # verbatim step text, can be longer
 MAX_TOKENS_PASS_3         = 1500   # CoT JSON with reasoning, ~800 tok seen
 
-# Context truncation cap for Pass 1 / Pass 2 (Fix B).
-# Free-tier llama TPM is 12K tokens/min INCLUDING max_tokens reservation.
-# Pass 1 budget: 30K chars context (~7.5K tok) + max_tokens 1024 + scaffolding
-# ~1.5K = ~10K total → fits under 12K with margin.
-MAX_CONTEXT_CHARS_FOR_PASS = 30_000
+# Context truncation cap for Pass 1 / Pass 2.
+#
+# Sized for Scout (the primary Pass 1/2 model), which has TPM=30_000 and a
+# 131K-token context window. We previously used 30_000 chars (~7.5K tokens)
+# — sized for llama-70B's 12K TPM ceiling. With Scout-first routing, that
+# left Scout's headroom unused AND silently dropped policy text far from
+# the drug-name cluster (e.g. the "THREE preferred products" universal
+# block we had to add the deterministic anchor scanner to recover).
+#
+# New sizing: 70_000 chars context (~17.5K tok) + max_tokens 2048 +
+# scaffolding ~1.5K ≈ ~21K total tokens per request. Fits Scout's 30K TPM
+# with comfortable margin (~85% utilization). On llama-70B fallback, this
+# WILL overflow the per-request 12K — the fallback path will log
+# request_too_big and try Scout on the next key or a different model. We
+# accept that trade-off: Scout-first routing is now the hot path.
+MAX_CONTEXT_CHARS_FOR_PASS = 70_000
 TEMPERATURE = 0.0
 
 # Vision fallback trigger: per-page text density threshold.
@@ -797,48 +808,77 @@ class RequestTooLarge(Exception):
 
 
 class TokenBudget:
-    """Sliding 60-second window of token usage.
+    """Sliding 60-second token-usage window, tracked PER (key_idx, model).
 
-    Before sending a call we estimate (prompt + max_output_tokens), drop
-    entries older than 60s from the window, sum what's left, and sleep
-    until budget frees if the sum + estimate would breach TPM_LIMIT.
-    We never send a call that would 429, so retry stays simple.
+    Earlier version used a single global window with hard-coded
+    TPM_LIMIT=5_500, which throttled Scout calls (real TPM=30_000) the
+    same as llama-70B (real TPM=12_000). Result: Scout artificially
+    bottlenecked, debug log showed 101 throttle sleeps + ~99 min wasted
+    sitting at sub-5K token requests that Scout could handle trivially.
+
+    The fix: each (key, model) combo gets its own 60s window, and the
+    cap consulted at sleep-decision time is GROQ_MODEL_TPM_CAP[model]
+    minus a safety margin. Different models on the same key share zero
+    state — accurate to how Groq actually meters TPM (per-model per-key).
     """
 
-    def __init__(self, tpm: int = TPM_LIMIT) -> None:
-        self.tpm = tpm
-        self.window: deque = deque()  # (timestamp, tokens)
+    # Safety margin below documented TPM so we never breach the 429 line.
+    # Groq reports the TPM as the daily cap; in practice the rolling window
+    # accepts ~95% of that. 0.85 leaves comfortable headroom for response
+    # overhead and clock skew.
+    SAFETY_FRACTION = 0.85
+    # Fallback for models not in GROQ_MODEL_TPM_CAP (defensive).
+    DEFAULT_TPM = 5_500
 
-    def consume(self, est_tokens: int) -> None:
+    def __init__(self) -> None:
+        # key: (key_idx, model_name) → deque of (timestamp, tokens)
+        self._windows: dict = {}
+
+    def _cap_for(self, model: str) -> int:
+        raw = GROQ_MODEL_TPM_CAP.get(model, self.DEFAULT_TPM)
+        return int(raw * self.SAFETY_FRACTION)
+
+    def consume(self, est_tokens: int, model: str, key_idx: int = 0) -> None:
+        """Throttle on the per-(key, model) sliding window. Sleep until the
+        window has room, then record this call."""
+        cap = self._cap_for(model)
+        win_key = (key_idx, model)
+        window = self._windows.setdefault(win_key, deque())
+
         now = time.time()
-        while self.window and now - self.window[0][0] > 60:
-            self.window.popleft()
-        used = sum(t for _, t in self.window)
-        if used + est_tokens > self.tpm:
-            if self.window:
-                oldest_ts = self.window[0][0]
+        while window and now - window[0][0] > 60:
+            window.popleft()
+        used = sum(t for _, t in window)
+
+        if used + est_tokens > cap:
+            if window:
+                oldest_ts = window[0][0]
                 sleep_for = max(0.0, 60 - (now - oldest_ts) + 0.5)
             else:
-                # Empty window but the single request itself is too large.
-                # Sleep 60s to be safe; also log so we can lower TPM ceilings
-                # or max-output tokens. Hitting this means a config tweak.
+                # Single request larger than this model's TPM cap.
+                # Caller should route to a bigger-TPM model rather than wait.
                 sleep_for = 60.0
                 log_debug({
                     "event": "tpm_request_exceeds_budget",
                     "est_tokens": est_tokens,
-                    "tpm_limit": self.tpm,
+                    "tpm_cap": cap,
+                    "model": model,
+                    "key_idx": key_idx,
                 })
             log_debug({
                 "event": "tpm_throttle_sleep",
                 "seconds": round(sleep_for, 2),
+                "model": model,
+                "key_idx": key_idx,
                 "tokens_in_window": used,
                 "would_add": est_tokens,
+                "tpm_cap": cap,
             })
             time.sleep(sleep_for)
             now = time.time()
-            while self.window and now - self.window[0][0] > 60:
-                self.window.popleft()
-        self.window.append((now, est_tokens))
+            while window and now - window[0][0] > 60:
+                window.popleft()
+        window.append((now, est_tokens))
 
 
 # Module-level shared state. Groq() does not hit the network on
@@ -968,7 +1008,7 @@ def _call_groq_text(
             # retry on TPM window-full). TPD and other errors break out
             # after the first attempt.
             for attempt in range(2):
-                token_budget.consume(est)
+                token_budget.consume(est, model=model, key_idx=key_idx)
                 started_at_ts = time.time()
                 started_at_iso = datetime.datetime.fromtimestamp(
                     started_at_ts, tz=datetime.timezone.utc,
@@ -1120,7 +1160,7 @@ def _call_groq_vision(
             continue
 
         for attempt in range(2):  # one wait+retry on TPM window-full
-            token_budget.consume(est)
+            token_budget.consume(est, model=GROQ_VISION_MODEL, key_idx=key_idx)
             started_at_ts = time.time()
             started_at_iso = datetime.datetime.fromtimestamp(
                 started_at_ts, tz=datetime.timezone.utc,
@@ -2029,6 +2069,21 @@ OUTPUT FORMAT — VERY IMPORTANT:
   (e.g. "Stelara 90mg/mL: 1 syringe per 56 days"); the generic statement
   "Quantity limits exist" with no specifics is NOT a match.
 
+- For specialist_types: if the policy lists prescriber specialty BY
+  INDICATION (e.g. a "Prescriber Specialties" section with sub-bullets
+  per indication), return ONLY the specialty for {indication}.
+  Example policy text:
+    "1. Prescriber Specialties — must be prescribed by:
+       1. Plaque psoriasis: dermatologist
+       2. Psoriatic arthritis: rheumatologist or dermatologist
+       3. Ulcerative colitis and Crohn's disease: gastroenterologist"
+  → For indication="Plaque Psoriasis", return "dermatologist" ONLY.
+  → Do NOT return "dermatologist, rheumatologist, gastroenterologist" —
+    rheumatologist and gastroenterologist apply to OTHER indications.
+  If the policy lists ONE specialty applying to all indications (or no
+  per-indication breakdown), return that single value or comma-list as
+  written. Capitalisation as in source ("Dermatologist" vs "dermatologist").
+
 Return ONLY this JSON:
 {{
   "age": ">=N format, or 'FDA approved age', or 'NA' if not mentioned",
@@ -2383,6 +2438,77 @@ WORKED EXAMPLE 5 — Aetna-Tremfya canonical pattern (full doc structure):
   (Phototherapy = No because photo appears only inside the OR-cluster we
    resolved to the methotrexate alternative.)
 
+WORKED EXAMPLE 6 — Zero-step OR carve-out (CONDITIONALLY applied):
+  Some policies offer a no-trial-required escape path inside the indication
+  block via phrases like:
+    - "clinical reason to avoid pharmacologic treatment with [drugs]"
+    - "contraindication to [drugs]"
+    - "unable to receive [class] due to medical contraindication"
+  Patient just needs documentation, not an actual trial. ZERO prior trials.
+
+  But this rule is CONDITIONAL — applies ONLY when ALL of the following hold:
+    (C1) Policy has NO universal step-therapy gate OUTSIDE the indication
+         block. Examples of universal gates that DISABLE this rule:
+           - "THREE preferred products" / "TWO preferred biologics" lists
+           - "contraindication/intolerance to all of [Ilumya, Stelara, ...]"
+           - "must have failed all available equivalent alternatives"
+         If any such universal gate exists, the universal count stays AND the
+         indication block contributes its TYPICAL step count (the MTX/CYC/ACI
+         or "previously received biologic" path), NOT the zero-step carve-out.
+    (C2) Within the indication block, Path A and Path B are EXPLICITLY
+         OR-connected. Look for explicit "; or", "or:", " OR " between the
+         sentences. If the two paths are just separate sentences with no
+         explicit OR connector (e.g. two consecutive "Authorization may be
+         granted ..." sentences with only newlines between them), treat them
+         as IMPLICIT AND (both required) — do NOT apply the carve-out
+         preferentially.
+    (C3) The carve-out is clearly a permissive provision (says "clinical
+         reason", "contraindication", "intolerance", or "unable to receive"
+         in a tone that documents avoidance, not a forced step).
+
+  WHEN ALL THREE CONDITIONS HOLD — apply carve-out resolution:
+    Policy: "1. previously received a biologic; or
+             2. for treatment when ANY of:
+                 (i) 3% BSA + inadequate response to MTX/CYC/ACI
+                 (ii) clinical reason to avoid MTX/CYC/ACI"
+    → Path A vs Path B is explicit OR (C2 ✓)
+    → No universal gate (C1 ✓)
+    → Sub-path (ii) is clearly permissive (C3 ✓)
+    → Least restrictive = sub-path (ii) = 0 steps → final counts NA NA NA.
+
+  WHEN ANY CONDITION FAILS — DO NOT apply carve-out preferentially:
+    Row-1-style (C1 fails — has universal gate):
+      Universal "THREE preferred products" requires 3 brands AND indication
+      → Brands=3 from universal (always required)
+      → Indication block contributes typical count: pick 3% BSA + MTX/CYC/ACI
+         OR-cluster sub-path = 1 generic step (the STANDARD path, NOT the
+         carve-out). The carve-out exists as documentation alternative but
+         we do NOT preferentially pick it when other paths are clear.
+      → Final: Brands=3, Generic=1, Phototherapy=No.
+
+    Row-2-style (C1 fails — has multi-brand contraindication gate):
+      "Contraindication/intolerance to all of: Ilumya, Stelara, Avsola/Inflectra/
+       Renflexis" + indication block with carve-out
+      → 1 branded step from Path A "previously received a biologic"
+      → 1 generic step from Path B 3% BSA + MTX/CYC/ACI cluster
+      → Final: Brands=1, Generic=1, Photo=No.
+
+    Row-5-style (C2 fails — implicit AND between two "Authorization may be
+       granted" sentences with only newline separator, no explicit OR):
+      "Authorization may be granted for members who have previously received
+       a biologic.
+
+       Authorization may be granted for members for treatment when any of:
+         3% BSA + (inadequate OR clinical reason to avoid)"
+      → No explicit OR between sentences → treat as AND (both required)
+      → Path A: 1 branded step (biologic)
+      → Path B: pick MTX/CYC/ACI OR-cluster = 1 generic step (standard path)
+      → Final: Brands=1, Generic=1, Photo=No.
+
+  CRITICAL: Default to the STANDARD interpretation (typical step path),
+  not the carve-out. Only escalate to the carve-out interpretation when
+  ALL THREE conditions C1+C2+C3 are clearly satisfied.
+
 OUTPUT RULES:
 - "Humira OR Enbrel" = 1 branded step (OR within a step is not a path choice)
 - "Previously received a biologic or targeted synthetic" = 1 branded step
@@ -2392,6 +2518,17 @@ OUTPUT RULES:
   breaker if it is one of multiple indication-level OR paths.
 - "methotrexate, cyclosporine, or acitretin" presented as alternatives within
   one criterion = 1 generic step (one OR-cluster)
+- ZERO-STEP CARVE-OUT recognition (per Worked Example 6, CONDITIONALLY):
+    "clinical reason to avoid X", "contraindication to X", "intolerance to
+    all of X" → recognize as a permissive ZERO-step provision.
+    BUT only apply this in OR-resolution when ALL of:
+      (C1) No universal step-therapy gate outside the indication block
+      (C2) EXPLICIT OR connector between Path A and Path B
+      (C3) Carve-out wording is clearly permissive
+    Otherwise → DEFAULT to the standard step path (typically the
+    MTX/CYC/ACI cluster = 1 generic step or the named "biologic" = 1 brand).
+    The carve-out is just one OR alternative; do NOT preferentially pick
+    it when standard paths are clearly available.
 - Unnamed step ("must try a conventional") defaults to generic
 - 0 branded → output "NA" (not "0")
 - 0 generic → output "NA" (not "0")
@@ -3040,13 +3177,124 @@ def fetch_fda_baseline(brand_name: str) -> Optional[dict]:
         return None
 
 
+# Other major indication keywords. If we can't find a PsO subsection and any
+# of these are mentioned, we refuse to guess an age — the label is multi-
+# indication and a bare regex would grab a different indication's age.
+_OTHER_INDICATIONS_PATTERN = re.compile(
+    r"\b(?:psoriatic\s+arthritis|ulcerative\s+colitis|crohn|"
+    r"rheumatoid\s+arthritis|ankylosing|juvenile|uveitis|"
+    r"hidradenitis|atopic\s+dermatitis|polyarticular|"
+    r"non[-\s]radiographic|axial\s+spondyloarthritis)\b",
+    re.IGNORECASE,
+)
+
+
+def _extract_pso_indication_section(indications: str) -> Optional[str]:
+    """Slice indications_and_usage to the Plaque-Psoriasis-specific subsection.
+
+    FDA labels list multiple indications in one big text block, each under
+    a numbered subsection (1.1, 1.2, ...). Naive regex on the full text
+    picks the FIRST age mentioned, which is often pJIA (2y) or PsA (2y),
+    not PsO. We must bound to the PsO subsection before extracting age.
+
+    Strategy:
+      1. Find "X.Y ... Plaque Psoriasis" section header (lookahead/behind
+         excludes "( 1.1 )" summary cross-references).
+      2. Slice from header start to the NEXT "X.Y" section start (or EOF).
+      3. If no PsO header found AND the label is single-indication, return
+         the full text. If multi-indication without a PsO section header,
+         return None — safer than picking the wrong age.
+    """
+    # PsO section header: "X.Y [optional title prefix] Plaque Psoriasis"
+    # Negative lookbehind for "(" and lookahead for non-")" filter out the
+    # "( 1.1 )" cross-references in the summary preamble.
+    pso_header = re.search(
+        r"(?<!\()\b\d+\.\d+\s+(?!\))[^.]{0,80}?Plaque\s+Psoriasis\b",
+        indications, re.IGNORECASE,
+    )
+
+    if not pso_header:
+        # No PsO subsection header. Two valid cases:
+        #   (a) Single-indication PsO label — use full text.
+        #   (b) Multi-indication label where PsO didn't get a subsection
+        #       header (shouldn't happen for current FDA-PsO-approved
+        #       biologics) → refuse to guess.
+        if not _OTHER_INDICATIONS_PATTERN.search(indications):
+            return indications
+        return None
+
+    pso_start = pso_header.start()
+    # Bound by the NEXT numbered section header (same exclusion rules).
+    next_section = re.search(
+        r"(?<!\()\s+\d+\.\d+\s+(?!\))[A-Z]",
+        indications[pso_header.end():],
+    )
+    if next_section:
+        pso_end = pso_header.end() + next_section.start()
+        return indications[pso_start:pso_end]
+    return indications[pso_start:]
+
+
+def _extract_age_from_pso_section(pso_section: str) -> Optional[int]:
+    """Extract minimum age from a PsO-bounded indication section.
+
+    Tries multiple phrasing patterns, then falls back to 18 if the section
+    explicitly says 'adult' without any pediatric mention (FDA approved for
+    adults only → comparison baseline should be 18, not None/UNKNOWN)."""
+    age_patterns = [
+        # "6 years of age and older" / "4 years of age or older"  (TREMFYA, ENBREL)
+        r"(\d+)\s+years?\s+of\s+age\s+(?:and|or)\s+older",
+        # "6 years and older"  (COSENTYX — drops "of age")
+        r"(\d+)\s+years?\s+(?:and|or)\s+older",
+        # "pediatric patients X years"  (rare variant)
+        r"pediatric\s+patients\s+(?:aged\s+)?(\d+)\s+years?",
+        # "age X years and older"  (defensive)
+        r"\bage[ds]?\s+(\d+)\s+years?\s+(?:and|or)\s+older",
+    ]
+    for pat in age_patterns:
+        m = re.search(pat, pso_section, re.IGNORECASE)
+        if m:
+            return int(m.group(1))
+
+    # Adult-only fallback: section mentions "adult" but no pediatric/years
+    # → FDA approves adults only → baseline is >=18.
+    has_adult = re.search(
+        r"\badults?\b|\badult\s+(?:patients|members)\b",
+        pso_section, re.IGNORECASE,
+    )
+    has_pediatric = re.search(
+        r"\bpediatric\b|\bchildren\b|\bage[ds]?\s+\d+\b|\b\d+\s+years?\b",
+        pso_section, re.IGNORECASE,
+    )
+    if has_adult and not has_pediatric:
+        return 18
+    return None
+
+
+def _extract_weight_from_pso_section(pso_section: str) -> Optional[int]:
+    """Same PsO-section bounding for weight. Avoids picking up a different
+    indication's weight condition (e.g. some labels have weight cutoffs
+    only for non-PsO indications)."""
+    m = re.search(
+        r"weigh(?:ing|s)?\s+at\s+least\s+(\d+)\s*kg",
+        pso_section, re.IGNORECASE,
+    )
+    return int(m.group(1)) if m else None
+
+
 def parse_fda_label(label: dict, brand_name: str) -> dict:
     """Parse raw FDA label into baseline dict.
 
-    Verified against TREMFYA (effective_time=20250929, min_age=6,
-    weight=40kg) and STELARA (effective_time=20260422, min_age=6, no
-    weight). Regexes broadened beyond spec to handle hyphen vs
-    space-separated severity ('moderate-to-severe' vs 'moderate to severe').
+    Critical: extract min_age + min_weight from the PLAQUE-PSORIASIS-SPECIFIC
+    subsection only, not the first match in the full indications_and_usage
+    text. Multi-indication labels list PsA / pJIA / UC / CD ages alongside
+    PsO; naive regex picks whichever appears first (usually 2y from pJIA or
+    PsA), giving wrong PsO baseline.
+
+    Verified ages after fix (vs raw FDA label PsO subsections):
+      TREMFYA=6, STELARA=6, ENBREL=4, COSENTYX=6, AMJEVITA=18 (adult-only),
+      SKYRIZI=18, ILUMYA=18, BIMZELX=18, OTEZLA=6, REMICADE=18 (adult-only),
+      CIMZIA=18 (adult-only), YESINTEK=6, OTULFI=6, ACITRETIN=None.
     """
     indications = (label.get("indications_and_usage") or [""])[0]
     eff_time = label.get("effective_time", "")
@@ -3056,24 +3304,24 @@ def parse_fda_label(label: dict, brand_name: str) -> dict:
     if isinstance(eff_time, str) and len(eff_time) == 8 and eff_time.isdigit():
         eff_date = f"{eff_time[:4]}-{eff_time[4:6]}-{eff_time[6:]}"
 
-    # Min age — "6 years of age and older" / "18 years of age or older"
-    age_match = re.search(
-        r"(\d+)\s+years?\s+of\s+age\s+(?:and|or)\s+older",
-        indications, re.IGNORECASE,
-    )
-    min_age = int(age_match.group(1)) if age_match else None
-
-    # Weight — "weigh at least 40 kg" / "weighing at least 40 kg"
-    weight_match = re.search(
-        r"weigh(?:ing)?\s+at\s+least\s+(\d+)\s*kg",
-        indications, re.IGNORECASE,
-    )
-    min_weight = int(weight_match.group(1)) if weight_match else None
+    # PsO-bounded age + weight (the actual fix — see helper docstrings)
+    pso_section = _extract_pso_indication_section(indications)
+    if pso_section is not None:
+        min_age = _extract_age_from_pso_section(pso_section)
+        min_weight = _extract_weight_from_pso_section(pso_section)
+    else:
+        min_age = None
+        min_weight = None
+        log_debug({
+            "event": "fda_label_no_pso_section",
+            "drug": brand_name,
+            "indications_chars": len(indications),
+        })
 
     # Severity — handle "moderate-to-severe" OR "moderate to severe"
-    # (TREMFYA uses hyphens, STELARA does not)
     severity = None
-    if re.search(r"moderate[-\s]to[-\s]severe", indications, re.IGNORECASE):
+    section_for_severity = pso_section or indications
+    if re.search(r"moderate[-\s]to[-\s]severe", section_for_severity, re.IGNORECASE):
         severity = "moderate-to-severe"
 
     openfda = label.get("openfda", {})

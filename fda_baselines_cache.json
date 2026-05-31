@@ -1,7 +1,7 @@
 {
   "ACITRETIN": {
     "brand_name": "ACITRETIN",
-    "min_age": null,
+    "min_age": 18,
     "min_weight_kg": null,
     "indication_severity": null,
     "brand_steps": 0,
@@ -16,7 +16,7 @@
   },
   "AMJEVITA": {
     "brand_name": "AMJEVITA",
-    "min_age": 2,
+    "min_age": 18,
     "min_weight_kg": null,
     "indication_severity": "moderate-to-severe",
     "brand_steps": 0,
@@ -31,7 +31,7 @@
   },
   "BIMZELX": {
     "brand_name": "BIMZELX",
-    "min_age": null,
+    "min_age": 18,
     "min_weight_kg": null,
     "indication_severity": "moderate-to-severe",
     "brand_steps": 0,
@@ -46,7 +46,7 @@
   },
   "CIMZIA": {
     "brand_name": "CIMZIA",
-    "min_age": 2,
+    "min_age": 18,
     "min_weight_kg": null,
     "indication_severity": "moderate-to-severe",
     "brand_steps": 0,
@@ -61,7 +61,7 @@
   },
   "COSENTYX": {
     "brand_name": "COSENTYX",
-    "min_age": 2,
+    "min_age": 6,
     "min_weight_kg": null,
     "indication_severity": "moderate-to-severe",
     "brand_steps": 0,
@@ -76,7 +76,7 @@
   },
   "ENBREL": {
     "brand_name": "ENBREL",
-    "min_age": 2,
+    "min_age": 4,
     "min_weight_kg": null,
     "indication_severity": "moderate-to-severe",
     "brand_steps": 0,
@@ -91,7 +91,7 @@
   },
   "ILUMYA": {
     "brand_name": "ILUMYA",
-    "min_age": null,
+    "min_age": 18,
     "min_weight_kg": null,
     "indication_severity": "moderate-to-severe",
     "brand_steps": 0,
@@ -136,7 +136,7 @@
   },
   "REMICADE": {
     "brand_name": "REMICADE",
-    "min_age": 6,
+    "min_age": 18,
     "min_weight_kg": null,
     "indication_severity": null,
     "brand_steps": 0,
@@ -151,7 +151,7 @@
   },
   "SKYRIZI": {
     "brand_name": "SKYRIZI",
-    "min_age": null,
+    "min_age": 18,
     "min_weight_kg": null,
     "indication_severity": "moderate-to-severe",
     "brand_steps": 0,
