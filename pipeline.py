@@ -1,14 +1,17 @@
 """
-pipeline.py — PA Policy Extraction Pipeline (PsO Hackathon)
+pipeline.py - PA Policy Extraction Pipeline (PsO Hackathon)
 
-Single-file extraction pipeline that reads payer Prior Authorization PDFs
-from Sample_PsO_ADS_Track/, fills the Submissions tab of
-pre-context/PA_Business_Rules.xlsx, and writes result.csv.
+Single-file extraction pipeline. Reads a Submissions CSV/XLSX, locates the
+PDF folder, and runs the full batch to result.csv.
 
-Build sequence per context/06_DEVELOPER_PLAN.md §13 (function-level order).
-Spec per context/03_PIPELINE_ARCHITECTURE.md.
+Usage:
+  python pipeline.py                         # full batch (resume if checkpoint exists)
+  python pipeline.py --fresh                 # archive prior outputs, start from row 0
+  python pipeline.py --smoke-test            # validation set only
+  python pipeline.py --submissions-path X --pdf-dir Y   # explicit paths
 
-Phase 0 — Bootstrap (constants, env loader, log_debug, argparse stub).
+Paths resolve in order: CLI flag > env var > known defaults > auto-discover.
+Env: GROQ_API_KEY_1..N, PIPELINE_SUBMISSIONS_PATH, PIPELINE_PDF_DIR, etc.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import time
@@ -64,7 +68,7 @@ _load_env_file()
 # ─────────────────────────────────────────────────────────────────
 
 # ── API Keys (Groq, multi-key TPD pooling) ───────────────────────
-# Loads GROQ_API_KEY (base) plus GROQ_API_KEY_1, _2, ... up to _9.
+# Loads GROQ_API_KEY (base) plus GROQ_API_KEY_1, _2, ... (any numbered keys in .env).
 # Each key is an independent Groq organization with its own daily TPD
 # per model. When a (key, model) combo hits TPD we rotate to the next
 # model in the fallback chain (same key). When all models on a key are
@@ -78,9 +82,11 @@ def _load_groq_keys() -> list:
     if base and base not in seen:
         keys.append(base)
         seen.add(base)
-    for i in range(1, 10):
+    for i in range(1, 101):
         k = os.environ.get(f"GROQ_API_KEY_{i}", "").strip()
-        if k and k not in seen:
+        if not k:
+            continue
+        if k not in seen:
             keys.append(k)
             seen.add(k)
     return keys
@@ -2257,12 +2263,12 @@ Return ONLY this JSON:
         max_tokens=MAX_TOKENS_PASS_1,
         model_chain=GROQ_TEXT_MODELS_FOR_PASS_1_2,
     )
-    return parse_json_safe(
+    return normalize_pass1_params(parse_json_safe(
         response, retry_prompt=prompt,
         retry_model_chain=GROQ_TEXT_MODELS_FOR_PASS_1_2,
         retry_max_tokens=MAX_TOKENS_PASS_1,
         retry_system_prompt=SYSTEM_PROMPT_EXTRACTOR,
-    )
+    ))
 
 
 # ── PASS 2 — Step therapy verbatim (single blob) ─────────────────
@@ -3417,6 +3423,7 @@ def validate_all(
       3. Semantic contradiction checks (advisory — flag only)
       4. Multi-brand ambiguity checks (advisory — flag only)
     """
+    params = normalize_pass1_params(params)
     params = rule_reauth_required(params)
     params = rule_auth_duration(params)
     params = rule_quantity_limits_strict(params)
@@ -4983,13 +4990,100 @@ COLUMN_MAP = {
 # Param keys allowed to be empty (Phase 2 deferral).
 PHASE2_PARAMS = {"access_score"}
 
+# LLM occasionally returns Pass 1 fields under alternate key names.
+PASS1_KEY_ALIASES = {
+    "duration_of_approval_initial": "initial_auth_duration_months",
+    "initial_authorization_duration_months": "initial_auth_duration_months",
+    "duration_of_approval_reauthorization": "reauth_duration_months",
+    "reauthorization_duration_months": "reauth_duration_months",
+    "prescriber": "specialist_types",
+    "specialist_type": "specialist_types",
+    "reauthorization_criteria": "reauth_requirements_text",
+    "reauth_criteria": "reauth_requirements_text",
+    "tb_test": "tb_test_required",
+    "quantity_limits": "quantity_limits_text",
+}
+
+PASS1_CANONICAL_KEYS = (
+    "age",
+    "tb_test_required",
+    "initial_auth_duration_months",
+    "reauth_duration_months",
+    "reauth_requirements_text",
+    "specialist_types",
+    "quantity_limits_text",
+)
+
+
+def _coerce_param_value(val) -> str:
+    """Pass 1 values must be plain strings for CSV output."""
+    if val is None:
+        return "NA"
+    if isinstance(val, bool):
+        return "Yes" if val else "No"
+    if isinstance(val, (list, tuple)):
+        parts = [_coerce_param_value(v) for v in val if v not in (None, "")]
+        parts = [p for p in parts if p != "NA"]
+        return "\n".join(parts) if parts else "NA"
+    if isinstance(val, dict):
+        return json.dumps(val, ensure_ascii=False)
+    s = str(val).strip()
+    return s if s else "NA"
+
+
+def _normalize_duration_value(val) -> str:
+    s = _coerce_param_value(val)
+    if s.upper() in ("NA", "N/A", "NULL", "NONE", "UNSPECIFIED"):
+        return s if s.upper() == "UNSPECIFIED" else "NA"
+    m = re.search(r"\d+", s)
+    return m.group(0) if m else s
+
+
+def normalize_pass1_params(params: dict) -> dict:
+    """Map Pass 1 alias keys to canonical names and fill missing fields with NA."""
+    out = dict(params)
+    weak = {"", "NA", "N/A", "NULL", "NONE", "UNSPECIFIED"}
+
+    for alias, canonical in PASS1_KEY_ALIASES.items():
+        if alias not in out:
+            continue
+        alias_val = _coerce_param_value(out.pop(alias))
+        current = _coerce_param_value(out.get(canonical, ""))
+        if canonical.endswith("_months"):
+            alias_val = _normalize_duration_value(alias_val)
+            if current.upper() in weak and alias_val not in weak:
+                out[canonical] = alias_val
+        elif current.upper() in weak and alias_val.upper() not in weak:
+            out[canonical] = alias_val
+
+    for key in PASS1_CANONICAL_KEYS:
+        if key not in out or _coerce_param_value(out.get(key)).upper() in weak:
+            out[key] = out.get(key) if key in out else "NA"
+            if _coerce_param_value(out[key]).upper() in weak:
+                out[key] = "NA"
+
+    for key in ("initial_auth_duration_months", "reauth_duration_months"):
+        if key in out:
+            val = _coerce_param_value(out[key])
+            if val.upper() not in weak and not val.isdigit():
+                out[key] = _normalize_duration_value(val)
+
+    if out.get("_warnings") is None:
+        pass
+    elif any("pass1_alias" in str(w) for w in out.get("_warnings", [])):
+        pass
+    elif any(k in params for k in PASS1_KEY_ALIASES):
+        out.setdefault("_warnings", []).append("PASS1_ALIAS_KEYS_NORMALIZED")
+
+    return out
+
 
 def format_row(params: dict) -> dict:
     """Map internal param keys to CSV column names. Raises on missing keys
     (other than Phase 2 deferrals + Filename/Brand which come from the row).
-    This catches the silent-empty-column bug class — any wiring mistake
-    surfaces immediately.
+    This catches wiring mistakes while still tolerating occasional LLM key drift.
     """
+    params = normalize_pass1_params(dict(params))
     missing = [
         k for k in COLUMN_MAP
         if k not in params
@@ -4997,9 +5091,10 @@ def format_row(params: dict) -> dict:
         and k not in ("Filename", "Brand")
     ]
     if missing:
-        raise KeyError(
-            f"format_row: params is missing keys: {missing} "
-            f"(params has: {list(params.keys())})"
+        for key in missing:
+            params[key] = "NA"
+        params.setdefault("_warnings", []).append(
+            f"FORMAT_ROW_FILLED_MISSING: {missing}"
         )
     return {COLUMN_MAP[k]: params.get(k, "") for k in COLUMN_MAP}
 
@@ -5276,24 +5371,130 @@ def run_smoke_test(xlsx_path: Path) -> bool:
 
 # ── MAIN ──────────────────────────────────────────────────────────
 
+def _resolve_submissions_path(cli_path: Optional[Path]) -> Path:
+    """Submissions CSV/XLSX: CLI > env > known defaults > auto-discover."""
+    if cli_path is not None:
+        return cli_path
+    for env_key in ("PIPELINE_SUBMISSIONS_PATH", "PIPELINE_XLSX_PATH"):
+        raw = os.environ.get(env_key, "").strip()
+        if raw:
+            p = Path(raw)
+            if p.exists():
+                return p
+    for candidate in (
+        Path("pre-context/PA_Business_Rules.xlsx"),
+        Path("submissions.csv"),
+        Path("submissions.xlsx"),
+        Path("PA_Business_Rules.xlsx"),
+    ):
+        if candidate.exists():
+            return candidate
+    return XLSX_PATH
+
+
+def _resolve_pdf_dir(cli_path: Optional[Path], needed_filenames: set[str]) -> Path:
+    """PDF folder: CLI > env > known defaults > first dir containing all PDFs."""
+    if cli_path is not None:
+        return cli_path
+    env_raw = os.environ.get("PIPELINE_PDF_DIR", "").strip()
+    if env_raw:
+        p = Path(env_raw)
+        if p.is_dir():
+            return p
+
+    def _has_all_pdfs(directory: Path) -> bool:
+        if not directory.is_dir() or not needed_filenames:
+            return False
+        on_disk = {f.name for f in directory.glob("*.pdf")}
+        return needed_filenames <= on_disk
+
+    for candidate in (
+        Path("Sample_PsO_ADS_Track"),
+        Path("pdfs"),
+        Path("PDFs"),
+    ):
+        if _has_all_pdfs(candidate):
+            return candidate
+
+    for child in sorted(Path(".").iterdir()):
+        if child.is_dir() and not child.name.startswith("."):
+            if _has_all_pdfs(child):
+                return child
+
+    return PDF_DIR
+
+
+def _prepare_fresh_run(project_root: Path = Path(".")) -> None:
+    """Archive checkpoint/result/debug log so the next batch starts at row 0."""
+    candidates = [
+        CHECKPOINT_PATH,
+        OUTPUT_PATH,
+    ]
+    if DEBUG_LOG_PATH.exists() and DEBUG_LOG_PATH.stat().st_size > 0:
+        candidates.append(DEBUG_LOG_PATH)
+
+    existing = [p for p in candidates if p.exists()]
+    if not existing:
+        print("INFO: --fresh: nothing to archive (already clean).")
+        return
+
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
+    archive_dir = project_root / "archives" / f"pre_batch_{ts}"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    print(f"INFO: --fresh: archiving prior outputs to {archive_dir}/")
+    for path in existing:
+        dest = archive_dir / path.name
+        shutil.move(str(path), str(dest))
+        print(f"  {path.name} -> {dest}")
+
+    if DEBUG_LOG_PATH in existing:
+        DEBUG_LOG_PATH.touch()
+
+
+def _print_startup_diagnostics(
+    submissions_path: Path,
+    pdf_dir: Path,
+    n_rows: int,
+    *,
+    fresh: bool,
+    resuming: bool,
+) -> None:
+    print("\n=== Pipeline startup ===")
+    print(f"  Groq keys:     {len(GROQ_API_KEYS)}")
+    print(f"  Submissions:   {submissions_path} ({n_rows} rows)")
+    print(f"  PDF dir:       {pdf_dir}")
+    print(f"  Output:        {OUTPUT_PATH}")
+    print(f"  Checkpoint:    {CHECKPOINT_PATH}")
+    print(f"  Debug log:     {DEBUG_LOG_PATH}")
+    if fresh:
+        print("  Mode:          FRESH (row 0)")
+    elif resuming:
+        print("  Mode:          RESUME (checkpoint found)")
+    else:
+        print("  Mode:          FULL BATCH")
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="PA Policy Extraction Pipeline (PsO Hackathon)",
     )
     parser.add_argument("--smoke-test", action="store_true",
                         help="Run smoke test only, exit. Halts on failure.")
+    parser.add_argument("--fresh", action="store_true",
+                        help="Archive checkpoint/result/debug log and start from row 0.")
+    parser.add_argument("--smoke-gate", action="store_true",
+                        help="Run pre-batch smoke gate (dev only; uses Reference/manual_labels).")
+    parser.add_argument("--determinism", action="store_true",
+                        help="Run determinism test on startup (3 LLM calls).")
     parser.add_argument("--skip-preflight", action="store_true",
                         help="Skip pre-flight check (NOT recommended).")
-    parser.add_argument("--skip-smoke-gate", action="store_true",
-                        help="Skip the pre-batch smoke gate.")
-    parser.add_argument("--skip-determinism", action="store_true",
-                        help="Skip determinism test (saves 3 LLM calls).")
     parser.add_argument("--force-rerun", nargs="*", default=[],
                         help="Force rerun for specific 'filename:brand' keys.")
     parser.add_argument("--pdf-dir", type=Path, default=None,
                         help="Override PDF_DIR (env: PIPELINE_PDF_DIR).")
-    parser.add_argument("--xlsx-path", type=Path, default=None,
-                        help="Override XLSX_PATH (env: PIPELINE_XLSX_PATH).")
+    parser.add_argument("--submissions-path", "--xlsx-path", type=Path,
+                        default=None, dest="submissions_path",
+                        help="Submissions CSV/XLSX (env: PIPELINE_SUBMISSIONS_PATH).")
     parser.add_argument("--output-path", type=Path, default=None,
                         help="Override OUTPUT_PATH (env: PIPELINE_OUTPUT_PATH).")
     return parser.parse_args()
@@ -5303,11 +5504,9 @@ def main() -> None:
     global BRANDED_DRUGS, GENERIC_DRUGS, PDF_DIR, XLSX_PATH, OUTPUT_PATH
     args = _parse_args()
 
-    # CLI overrides
-    if args.pdf_dir:
-        PDF_DIR = args.pdf_dir
-    if args.xlsx_path:
-        XLSX_PATH = args.xlsx_path
+    if args.fresh:
+        _prepare_fresh_run()
+
     if args.output_path:
         OUTPUT_PATH = args.output_path
 
@@ -5315,16 +5514,13 @@ def main() -> None:
     if not GROQ_API_KEY:
         print("ERROR: GROQ_API_KEY required (set env var or add to .env)")
         sys.exit(1)
-    if not PDF_DIR.exists():
-        print(f"ERROR: PDF_DIR does not exist: {PDF_DIR}")
-        sys.exit(1)
+
+    XLSX_PATH = _resolve_submissions_path(args.submissions_path)
     if not XLSX_PATH.exists():
         print(f"ERROR: Submissions file does not exist: {XLSX_PATH}")
+        print("       Set PIPELINE_SUBMISSIONS_PATH or pass --submissions-path")
         sys.exit(1)
 
-    # Submission environment may ship only the Submissions file (CSV or
-    # XLSX) — no Reference / PsO Brands / Additional Extracted Data sheets.
-    # load_drug_classifications() defaults to PSO_MARKET_BASKET in that case.
     is_xlsx = XLSX_PATH.suffix.lower() in (".xlsx", ".xls")
 
     print("Loading drug classifications...")
@@ -5336,6 +5532,18 @@ def main() -> None:
     print("Loading submissions...")
     submissions_df = load_submissions(XLSX_PATH)
     print(f"  {len(submissions_df)} rows to process")
+
+    needed_pdfs = set(submissions_df["Filename"].astype(str))
+    PDF_DIR = _resolve_pdf_dir(args.pdf_dir, needed_pdfs)
+    if not PDF_DIR.exists():
+        print(f"ERROR: PDF_DIR does not exist: {PDF_DIR}")
+        sys.exit(1)
+
+    _print_startup_diagnostics(
+        XLSX_PATH, PDF_DIR, len(submissions_df),
+        fresh=args.fresh,
+        resuming=CHECKPOINT_PATH.exists() and not args.fresh,
+    )
 
     # Block 7 — Load FDA baselines for every unique brand in the batch.
     # Disk-cached to fda_baselines_cache.json — second run skips all
@@ -5367,7 +5575,7 @@ def main() -> None:
     else:
         print("INFO: Submissions input is CSV — skipping Reference / Additional Data probes.")
 
-    if not args.skip_determinism:
+    if args.determinism:
         determinism_test()
 
     if is_xlsx:
@@ -5396,16 +5604,13 @@ def main() -> None:
             _atomic_checkpoint_write(ckpt["results"])
             print(f"Cleared {len(rerun_keys)} rows from checkpoint for rerun.")
 
-    # Smoke gate depends on Reference sheet + manual_labels.csv — both are
-    # dev-only artifacts. Auto-skip when running against a submission CSV.
-    if not args.skip_smoke_gate and is_xlsx:
+    if args.smoke_gate and is_xlsx:
         print("\n=== Pre-batch smoke gate ===")
         if not run_smoke_test(XLSX_PATH):
             print("HALT: smoke test failed. Fix before running batch.")
             sys.exit(1)
-    elif not is_xlsx:
-        print("INFO: Submissions input is CSV — skipping smoke gate "
-              "(no Reference/manual_labels expected).")
+    elif args.smoke_gate and not is_xlsx:
+        print("INFO: --smoke-gate ignored for CSV input (no Reference tab).")
 
     # Full batch
     results = process_all_rows(submissions_df, pdf_cache=pdf_cache)
